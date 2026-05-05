@@ -2,6 +2,7 @@
 
 import {
   DEFAULT_RATE,
+  LeavesMap,
   ManualPayMap,
   Schedule,
   Staff,
@@ -15,16 +16,20 @@ export default function StaffPanel({
   staff,
   schedule,
   manualPay,
+  leaves,
   setStaff,
   setSchedule,
   setManualPay,
+  setLeaves,
 }: {
   staff: Staff[];
   schedule: Schedule;
   manualPay: ManualPayMap;
+  leaves: LeavesMap;
   setStaff: (next: Staff[]) => void;
   setSchedule: (next: Schedule) => void;
   setManualPay: (next: ManualPayMap) => void;
+  setLeaves: (next: LeavesMap) => void;
 }) {
   function update<K extends keyof Staff>(id: string, key: K, value: Staff[K]) {
     setStaff(staff.map((s) => (s.id === id ? { ...s, [key]: value } : s)));
@@ -41,6 +46,9 @@ export default function StaffPanel({
     const nextPay = { ...manualPay };
     delete nextPay[id];
     setManualPay(nextPay);
+    const nextLeaves = { ...leaves };
+    delete nextLeaves[id];
+    setLeaves(nextLeaves);
   }
   function add() {
     const id = uid();
@@ -72,7 +80,7 @@ export default function StaffPanel({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {staff.map((s) => {
           const c = shiftCount(schedule, s.id);
-          const pay = staffPay(s, schedule, manualPay);
+          const pay = staffPay(s, schedule, manualPay, leaves);
           return (
             <article
               key={s.id}

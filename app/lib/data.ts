@@ -24,19 +24,41 @@ export type Staff = {
   role: string;
   rate: number;
   manual: boolean;
+  /** Optional hard constraints — used by lint(). */
+  allowedDays?: Day[];
 };
 
 export type Schedule = Record<string, Partial<Record<Day, ShiftKind>>>;
 
 export type ShiftWindow = { start: string; end: string; hours: number };
 export type ShiftTimes = { D: ShiftWindow; N: ShiftWindow };
-export type DayOverrides = Partial<Record<Day, Partial<ShiftTimes>>>;
+
+export type DayOverride = {
+  D?: Partial<ShiftWindow>;
+  N?: Partial<ShiftWindow>;
+  required?: { D?: number; N?: number };
+};
+export type DayOverrides = Partial<Record<Day, DayOverride>>;
 export type ManualPayMap = Record<string, number>;
+
+export type LeaveType = "vacation" | "sick" | "training" | "holiday";
+export const LEAVE_LABELS: Record<LeaveType, string> = {
+  vacation: "Vacation",
+  sick: "Sick",
+  training: "Training",
+  holiday: "Holiday",
+};
+
+export type Leave = { type: LeaveType; note?: string };
+export type LeavesMap = Record<string, Partial<Record<Day, Leave>>>;
+export type NotesMap = Record<string, Partial<Record<Day, string>>>;
 
 export type WeekData = {
   schedule: Schedule;
   dayOverrides: DayOverrides;
   manualPay: ManualPayMap;
+  notes: NotesMap;
+  leaves: LeavesMap;
 };
 
 export const DEFAULT_SHIFT_TIMES: ShiftTimes = {
@@ -45,14 +67,14 @@ export const DEFAULT_SHIFT_TIMES: ShiftTimes = {
 };
 
 export const DEFAULT_STAFF: Staff[] = [
-  { id: "tessie",  name: "Tessie",   role: "Senior caregiver · Sat–Wed", rate: 500, manual: true  },
-  { id: "eula",    name: "Eula",     role: "Senior caregiver · Mon–Fri", rate: 500, manual: true  },
+  { id: "tessie",  name: "Tessie",   role: "Senior caregiver · Sat–Wed", rate: 500, manual: true,  allowedDays: ["Sat", "Sun", "Mon", "Tue", "Wed"] },
+  { id: "eula",    name: "Eula",     role: "Senior caregiver · Mon–Fri", rate: 500, manual: true,  allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
   { id: "teng",    name: "Teng",     role: "Day · weekend-leaning",      rate: 500, manual: false },
   { id: "jane",    name: "Jane",     role: "Mixed · 3 day, 2 night",     rate: 500, manual: false },
-  { id: "trisha",  name: "Trisha",   role: "Night · Mon–Fri",            rate: 500, manual: false },
+  { id: "trisha",  name: "Trisha",   role: "Night · Mon–Fri",            rate: 500, manual: false, allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
   { id: "jessica", name: "Jessica",  role: "Night · weekends included",  rate: 500, manual: false },
-  { id: "alondra", name: "Alondra",  role: "Day · Mon–Fri",              rate: 500, manual: false },
-  { id: "maryann", name: "Mary Ann", role: "Night · Sunday only",        rate: 500, manual: false },
+  { id: "alondra", name: "Alondra",  role: "Day · Mon–Fri",              rate: 500, manual: false, allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+  { id: "maryann", name: "Mary Ann", role: "Night · Sunday only",        rate: 500, manual: false, allowedDays: ["Sun"] },
   { id: "j",       name: "J",        role: "Flexible night cover",       rate: 500, manual: false },
 ];
 
@@ -113,7 +135,7 @@ export type AppState = {
 };
 
 export function blankWeek(): WeekData {
-  return { schedule: {}, dayOverrides: {}, manualPay: {} };
+  return { schedule: {}, dayOverrides: {}, manualPay: {}, notes: {}, leaves: {} };
 }
 
 export function makeDefaultState(): AppState {
@@ -126,37 +148,49 @@ export function makeDefaultState(): AppState {
         schedule: DEFAULT_SCHEDULE,
         dayOverrides: {},
         manualPay: { ...DEFAULT_MANUAL_PAY },
+        notes: {},
+        leaves: {},
       },
     },
     currentWeekKey: key,
   };
 }
 
-/** Returns a shallow-clone of the week if it exists, otherwise builds one
- *  by cloning the most recent earlier week (so a fresh week starts as a
- *  copy of last week's pattern). Falls back to the PRD defaults if there
- *  is no earlier week. */
 export function getOrSeedWeek(
   weeks: Record<string, WeekData>,
   key: string
 ): WeekData {
   const existing = weeks[key];
-  if (existing) return existing;
+  if (existing) return ensureWeekShape(existing);
   const earlier = Object.keys(weeks)
     .filter((k) => k < key)
     .sort()
     .pop();
   const source: WeekData = earlier
-    ? weeks[earlier]
+    ? ensureWeekShape(weeks[earlier])
     : {
         schedule: DEFAULT_SCHEDULE,
         dayOverrides: {},
         manualPay: { ...DEFAULT_MANUAL_PAY },
+        notes: {},
+        leaves: {},
       };
   return {
     schedule: cloneSchedule(source.schedule),
     dayOverrides: { ...source.dayOverrides },
     manualPay: { ...source.manualPay },
+    notes: {}, // notes do NOT carry forward — new week, fresh slate
+    leaves: {}, // same for leaves
+  };
+}
+
+function ensureWeekShape(w: WeekData): WeekData {
+  return {
+    schedule: w.schedule ?? {},
+    dayOverrides: w.dayOverrides ?? {},
+    manualPay: w.manualPay ?? {},
+    notes: w.notes ?? {},
+    leaves: w.leaves ?? {},
   };
 }
 
@@ -178,9 +212,12 @@ export function dayCount(
   schedule: Schedule,
   staff: Staff[],
   day: Day,
-  kind: ShiftKind
+  kind: ShiftKind,
+  leaves: LeavesMap = {}
 ): Staff[] {
-  return staff.filter((s) => schedule[s.id]?.[day] === kind);
+  return staff.filter(
+    (s) => schedule[s.id]?.[day] === kind && !leaves[s.id]?.[day]
+  );
 }
 
 export function pesos(n: number): string {
@@ -196,20 +233,28 @@ export function pesos(n: number): string {
 export function staffPay(
   s: Staff,
   schedule: Schedule,
-  manualPay: ManualPayMap
+  manualPay: ManualPayMap,
+  leaves: LeavesMap = {}
 ): number {
   if (s.manual) return manualPay[s.id] ?? 0;
-  return shiftCount(schedule, s.id) * s.rate;
+  // auto: only paid for shifts not on leave
+  const row = schedule[s.id] ?? {};
+  let n = 0;
+  for (const d of DAYS) {
+    if (row[d] && !leaves[s.id]?.[d]) n++;
+  }
+  return n * s.rate;
 }
 
 export function totals(
   staff: Staff[],
   schedule: Schedule,
-  manualPay: ManualPayMap
+  manualPay: ManualPayMap,
+  leaves: LeavesMap = {}
 ) {
   const auto = staff
     .filter((s) => !s.manual)
-    .reduce((sum, s) => sum + shiftCount(schedule, s.id) * s.rate, 0);
+    .reduce((sum, s) => sum + staffPay(s, schedule, manualPay, leaves), 0);
   const manual = staff
     .filter((s) => s.manual)
     .reduce((sum, s) => sum + (manualPay[s.id] ?? 0), 0);
@@ -228,55 +273,200 @@ export function effectiveTimes(
   };
 }
 
+export function effectiveRequired(
+  overrides: DayOverrides,
+  day: Day
+): { D: number; N: number } {
+  const o = overrides[day]?.required ?? {};
+  return {
+    D: o.D ?? REQUIRED_DAY,
+    N: o.N ?? REQUIRED_NIGHT,
+  };
+}
+
+/* ---------- lint ---------- */
+
+export type Violation =
+  | {
+      kind: "double-booked";
+      staffId: string;
+      day: Day;
+      message: string;
+    }
+  | {
+      kind: "over-cap";
+      staffId: string;
+      count: number;
+      message: string;
+    }
+  | {
+      kind: "constraint";
+      staffId: string;
+      day: Day;
+      message: string;
+    }
+  | {
+      kind: "coverage";
+      day: Day;
+      shift: ShiftKind;
+      have: number;
+      need: number;
+      message: string;
+    }
+  | {
+      kind: "leave-conflict";
+      staffId: string;
+      day: Day;
+      message: string;
+    };
+
+export function lint(
+  staff: Staff[],
+  week: WeekData
+): Violation[] {
+  const issues: Violation[] = [];
+  const byId = new Map(staff.map((s) => [s.id, s]));
+  const { schedule, leaves, dayOverrides } = week;
+
+  // Per-staff checks
+  for (const s of staff) {
+    const row = schedule[s.id] ?? {};
+    let count = 0;
+    for (const d of DAYS) {
+      const k = row[d];
+      if (k) count++;
+      if (k && s.allowedDays && !s.allowedDays.includes(d)) {
+        issues.push({
+          kind: "constraint",
+          staffId: s.id,
+          day: d,
+          message: `${s.name} is rostered ${d} but constraint says ${s.allowedDays.join("/")} only.`,
+        });
+      }
+      if (k && leaves[s.id]?.[d]) {
+        issues.push({
+          kind: "leave-conflict",
+          staffId: s.id,
+          day: d,
+          message: `${s.name} is on leave ${d} but still rostered for a shift.`,
+        });
+      }
+    }
+    if (count > MAX_SHIFTS) {
+      issues.push({
+        kind: "over-cap",
+        staffId: s.id,
+        count,
+        message: `${s.name} is over the ${MAX_SHIFTS}-shift weekly cap (${count}).`,
+      });
+    }
+  }
+
+  // A single (staff, day) cell can only hold D or N — schedule shape prevents
+  // double-booking, but a leave + a shift on the same day is its own issue
+  // already covered above.
+
+  // Coverage per day
+  for (const d of DAYS) {
+    const req = effectiveRequired(dayOverrides, d);
+    const dN = dayCount(schedule, staff, d, "D", leaves).length;
+    const nN = dayCount(schedule, staff, d, "N", leaves).length;
+    if (dN !== req.D) {
+      issues.push({
+        kind: "coverage",
+        day: d,
+        shift: "D",
+        have: dN,
+        need: req.D,
+        message: `${d} day shift has ${dN} caregivers, target ${req.D}.`,
+      });
+    }
+    if (nN !== req.N) {
+      issues.push({
+        kind: "coverage",
+        day: d,
+        shift: "N",
+        have: nN,
+        need: req.N,
+        message: `${d} night shift has ${nN} caregivers, target ${req.N}.`,
+      });
+    }
+  }
+
+  return issues;
+}
+
 /* ---------- persistence + migration ---------- */
 
-export const STORAGE_KEY = "childrens-home-roster-v2";
+export const STORAGE_KEY = "childrens-home-roster-v3";
+const LEGACY_KEYS = ["childrens-home-roster-v2"];
 
 export function loadState(): AppState {
   if (typeof window === "undefined") return makeDefaultState();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return makeDefaultState();
-    const parsed = JSON.parse(raw);
-
-    // Already on the multi-week schema
-    if (parsed?.weeks && parsed?.currentWeekKey) {
-      return {
-        staff: (parsed.staff ?? DEFAULT_STAFF).map(stripStaff),
-        shiftTimes: parsed.shiftTimes ?? DEFAULT_SHIFT_TIMES,
-        weeks: parsed.weeks,
-        currentWeekKey: parsed.currentWeekKey,
-      };
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      for (const k of LEGACY_KEYS) {
+        const legacy = localStorage.getItem(k);
+        if (legacy) {
+          raw = legacy;
+          break;
+        }
+      }
     }
+    if (!raw) return makeDefaultState();
+    return parseState(JSON.parse(raw));
+  } catch {
+    return makeDefaultState();
+  }
+}
 
-    // Old single-week schema → migrate
+export function parseState(parsed: unknown): AppState {
+  if (!parsed || typeof parsed !== "object") return makeDefaultState();
+  const p = parsed as Record<string, unknown>;
+
+  // Multi-week schema (v2+)
+  if (p.weeks && p.currentWeekKey) {
+    const weeks = p.weeks as Record<string, WeekData>;
+    const filled: Record<string, WeekData> = {};
+    for (const k of Object.keys(weeks)) filled[k] = ensureWeekShape(weeks[k]);
+    return {
+      staff: ((p.staff as Staff[]) ?? DEFAULT_STAFF).map(stripStaff),
+      shiftTimes: (p.shiftTimes as ShiftTimes) ?? DEFAULT_SHIFT_TIMES,
+      weeks: filled,
+      currentWeekKey: p.currentWeekKey as string,
+    };
+  }
+
+  // Old single-week schema → migrate
+  if (p.schedule) {
     const key = thisWeekKey();
     const manualPay: ManualPayMap = {};
-    const oldStaff = (parsed.staff ?? DEFAULT_STAFF) as Array<
-      Staff & { manualPay?: number }
-    >;
+    const oldStaff = (p.staff as Array<Staff & { manualPay?: number }>) ?? DEFAULT_STAFF;
     const cleanStaff = oldStaff.map((s) => {
       if (typeof s.manualPay === "number") manualPay[s.id] = s.manualPay;
       return stripStaff(s);
     });
     return {
       staff: cleanStaff,
-      shiftTimes: parsed.shiftTimes ?? DEFAULT_SHIFT_TIMES,
+      shiftTimes: (p.shiftTimes as ShiftTimes) ?? DEFAULT_SHIFT_TIMES,
       weeks: {
         [key]: {
-          schedule: parsed.schedule ?? DEFAULT_SCHEDULE,
-          dayOverrides: parsed.dayOverrides ?? {},
+          schedule: (p.schedule as Schedule) ?? DEFAULT_SCHEDULE,
+          dayOverrides: (p.dayOverrides as DayOverrides) ?? {},
           manualPay:
             Object.keys(manualPay).length > 0
               ? manualPay
               : { ...DEFAULT_MANUAL_PAY },
+          notes: {},
+          leaves: {},
         },
       },
       currentWeekKey: key,
     };
-  } catch {
-    return makeDefaultState();
   }
+
+  return makeDefaultState();
 }
 
 function stripStaff(s: Staff & { manualPay?: number }): Staff {
@@ -286,6 +476,7 @@ function stripStaff(s: Staff & { manualPay?: number }): Staff {
     role: s.role,
     rate: s.rate,
     manual: s.manual,
+    allowedDays: s.allowedDays,
   };
 }
 
@@ -321,6 +512,21 @@ export function fmtOrdinalDate(d: Date): string {
   return `${d.toLocaleDateString("en-US", { month: "long" })} ${day}${suffix}`;
 }
 
+export function fmtTimestamp(d: Date = new Date()): string {
+  return (
+    d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }) +
+    " · " +
+    d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
+}
+
 export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -329,47 +535,83 @@ export function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
+/* ---------- shareable encoding ---------- */
+
+/** A compact, URL-safe payload of a single week + roster + times. */
+export type SharePayload = {
+  staff: Staff[];
+  shiftTimes: ShiftTimes;
+  weekKey: string;
+  week: WeekData;
+};
+
+export function encodeShare(p: SharePayload): string {
+  const json = JSON.stringify(p);
+  if (typeof window === "undefined") {
+    return Buffer.from(json, "utf-8").toString("base64url");
+  }
+  // browser path
+  const b64 =
+    btoa(unescape(encodeURIComponent(json)))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  return b64;
+}
+
+export function decodeShare(code: string): SharePayload | null {
+  try {
+    const b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = b64 + "===".slice((b64.length + 3) % 4);
+    let json: string;
+    if (typeof window === "undefined") {
+      json = Buffer.from(padded, "base64").toString("utf-8");
+    } else {
+      json = decodeURIComponent(escape(atob(padded)));
+    }
+    const obj = JSON.parse(json);
+    if (!obj || !obj.staff || !obj.week || !obj.weekKey) return null;
+    return obj as SharePayload;
+  } catch {
+    return null;
+  }
+}
+
 /* ---------- export helpers ---------- */
 
 export function buildScheduleCsv(
   staff: Staff[],
   schedule: Schedule,
   manualPay: ManualPayMap,
+  leaves: LeavesMap,
   weekLabel: string
 ): string {
   const head = ["Caregiver", "Role", ...DAYS, "Shifts", "Rate", "Pay"];
   const rows = staff.map((s) => {
     const row = schedule[s.id] ?? {};
-    const cells = DAYS.map((d) => row[d] ?? "");
-    const c = shiftCount(schedule, s.id);
+    const cells = DAYS.map((d) => {
+      const lv = leaves[s.id]?.[d];
+      if (lv) return lv.type.toUpperCase();
+      return row[d] ?? "";
+    });
+    let count = 0;
+    for (const d of DAYS) if (row[d] && !leaves[s.id]?.[d]) count++;
     return [
       s.name,
       s.role,
       ...cells,
-      String(c),
+      String(count),
       s.manual ? "manual" : `₱${s.rate}`,
-      String(staffPay(s, schedule, manualPay)),
+      String(staffPay(s, schedule, manualPay, leaves)),
     ];
   });
-  const t = totals(staff, schedule, manualPay);
+  const t = totals(staff, schedule, manualPay, leaves);
   const blank: string[] = new Array(head.length).fill("");
   rows.push(blank);
   rows.push([`Week of ${weekLabel}`, ...blank.slice(1)]);
-  rows.push([
-    "Auto subtotal",
-    ...blank.slice(1, head.length - 1),
-    String(t.auto),
-  ]);
-  rows.push([
-    "Manual subtotal",
-    ...blank.slice(1, head.length - 1),
-    String(t.manual),
-  ]);
-  rows.push([
-    "Grand total",
-    ...blank.slice(1, head.length - 1),
-    String(t.grand),
-  ]);
+  rows.push(["Auto subtotal", ...blank.slice(1, head.length - 1), String(t.auto)]);
+  rows.push(["Manual subtotal", ...blank.slice(1, head.length - 1), String(t.manual)]);
+  rows.push(["Grand total", ...blank.slice(1, head.length - 1), String(t.grand)]);
 
   return toCsv([head, ...rows]);
 }
@@ -378,6 +620,7 @@ export function buildPayrollCsv(
   staff: Staff[],
   schedule: Schedule,
   manualPay: ManualPayMap,
+  leaves: LeavesMap,
   weekLabel: string
 ): string {
   const head = ["Caregiver", "Role", "Type", "Shifts", "Rate", "Pay"];
@@ -390,33 +633,23 @@ export function buildPayrollCsv(
 
   if (auto.length > 0) rows.push(["AUTO", "", "", "", "", ""]);
   for (const s of auto) {
-    const c = shiftCount(schedule, s.id);
-    rows.push([
-      s.name,
-      s.role,
-      "auto",
-      String(c),
-      String(s.rate),
-      String(c * s.rate),
-    ]);
+    let c = 0;
+    const row = schedule[s.id] ?? {};
+    for (const d of DAYS) if (row[d] && !leaves[s.id]?.[d]) c++;
+    rows.push([s.name, s.role, "auto", String(c), String(s.rate), String(c * s.rate)]);
   }
   if (manual.length > 0) {
     rows.push([]);
     rows.push(["MANUAL", "", "", "", "", ""]);
   }
   for (const s of manual) {
-    const c = shiftCount(schedule, s.id);
-    rows.push([
-      s.name,
-      s.role,
-      "manual",
-      String(c),
-      "—",
-      String(manualPay[s.id] ?? 0),
-    ]);
+    let c = 0;
+    const row = schedule[s.id] ?? {};
+    for (const d of DAYS) if (row[d] && !leaves[s.id]?.[d]) c++;
+    rows.push([s.name, s.role, "manual", String(c), "—", String(manualPay[s.id] ?? 0)]);
   }
 
-  const t = totals(staff, schedule, manualPay);
+  const t = totals(staff, schedule, manualPay, leaves);
   rows.push([]);
   rows.push(["Auto subtotal", "", "", "", "", String(t.auto)]);
   rows.push(["Manual subtotal", "", "", "", "", String(t.manual)]);
@@ -433,6 +666,17 @@ function toCsv(rows: string[][]): string {
 
 export function downloadCsv(filename: string, csv: string): void {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  triggerDownload(blob, filename);
+}
+
+export function downloadJson(filename: string, payload: unknown): void {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json;charset=utf-8;",
+  });
+  triggerDownload(blob, filename);
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

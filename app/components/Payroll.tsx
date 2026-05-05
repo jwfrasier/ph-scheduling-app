@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  DAYS,
+  LeavesMap,
   ManualPayMap,
   Schedule,
   Staff,
@@ -13,14 +15,16 @@ export default function PayrollPanel({
   staff,
   schedule,
   manualPay,
+  leaves,
   setManualPay,
 }: {
   staff: Staff[];
   schedule: Schedule;
   manualPay: ManualPayMap;
+  leaves: LeavesMap;
   setManualPay: (next: ManualPayMap) => void;
 }) {
-  const t = totals(staff, schedule, manualPay);
+  const t = totals(staff, schedule, manualPay, leaves);
   const auto = staff.filter((s) => !s.manual);
   const manual = staff.filter((s) => s.manual);
 
@@ -51,7 +55,9 @@ export default function PayrollPanel({
           </div>
           <ul>
             {auto.map((s) => {
-              const c = shiftCount(schedule, s.id);
+              const row = schedule[s.id] ?? {};
+              let c = 0;
+              for (const d of DAYS) if (row[d] && !leaves[s.id]?.[d]) c++;
               return (
                 <li
                   key={s.id}

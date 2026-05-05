@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   DayOverrides,
+  LeavesMap,
   ManualPayMap,
+  NotesMap,
   Schedule,
   STORAGE_KEY,
   Staff,
@@ -14,21 +16,31 @@ import {
   buildScheduleCsv,
   dayCount,
   downloadCsv,
+  downloadJson,
+  encodeShare,
   fmtOrdinalDate,
   getOrSeedWeek,
-  isSameDay,
+  lint,
   loadState,
   makeDefaultState,
+  parseState,
   pesos,
   saveState,
   shiftWeekKey,
   thisWeekKey,
   totals,
   weekDatesFromKey,
+  effectiveRequired,
   DAYS,
   REQUIRED_DAY,
   REQUIRED_NIGHT,
 } from "./lib/data";
+import {
+  SyncStatus,
+  remoteAvailable,
+  tryRemoteLoad,
+  tryRemoteSave,
+} from "./lib/sync";
 import SchedulePanel from "./components/Schedule";
 import CalendarPanel from "./components/Calendar";
 import StaffPanel from "./components/Staff";
@@ -49,14 +61,37 @@ export default function Home() {
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<AppState>(() => makeDefaultState());
   const [printMode, setPrintMode] = useState<PrintMode>("calendar");
+  const [sync, setSync] = useState<SyncStatus>("local");
+  const [toast, setToast] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
+  // Load — try KV first, fall back to localStorage
   useEffect(() => {
-    setState(loadState());
-    setHydrated(true);
+    let mounted = true;
+    (async () => {
+      const remote = await tryRemoteLoad();
+      if (!mounted) return;
+      if (remote) {
+        setState(remote);
+        setSync("synced");
+      } else {
+        setState(loadState());
+        setSync(remoteAvailable() === false ? "off" : "local");
+      }
+      setHydrated(true);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  // Save (local always, KV opportunistically)
   useEffect(() => {
-    if (hydrated) saveState(state);
+    if (!hydrated) return;
+    saveState(state);
+    if (remoteAvailable() === false) return;
+    setSync("syncing");
+    tryRemoteSave(state).then((s) => setSync(s));
   }, [state, hydrated]);
 
   /* ---------- week handling ---------- */
@@ -109,10 +144,9 @@ export default function Home() {
     }));
   }
 
-  /* ---------- setters that scope to the current week ---------- */
+  /* ---------- setters ---------- */
 
-  const setStaff = (next: Staff[]) =>
-    setState((s) => ({ ...s, staff: next }));
+  const setStaff = (next: Staff[]) => setState((s) => ({ ...s, staff: next }));
   const setShiftTimes = (next: ShiftTimes) =>
     setState((s) => ({ ...s, shiftTimes: next }));
   const setSchedule = (next: Schedule) => updateWeek({ schedule: next });
@@ -120,29 +154,38 @@ export default function Home() {
     updateWeek({ dayOverrides: next });
   const setManualPay = (next: ManualPayMap) =>
     updateWeek({ manualPay: next });
+  const setNotes = (next: NotesMap) => updateWeek({ notes: next });
+  const setLeaves = (next: LeavesMap) => updateWeek({ leaves: next });
 
   /* ---------- derived ---------- */
 
-  const t = totals(state.staff, week.schedule, week.manualPay);
+  const t = totals(state.staff, week.schedule, week.manualPay, week.leaves);
+
+  const violations = useMemo(
+    () => lint(state.staff, week),
+    [state.staff, week]
+  );
 
   const flagged = useMemo(() => {
     return DAYS.filter((d) => {
-      const dN = dayCount(week.schedule, state.staff, d, "D").length;
-      const nN = dayCount(week.schedule, state.staff, d, "N").length;
-      return dN !== REQUIRED_DAY || nN !== REQUIRED_NIGHT;
+      const r = effectiveRequired(week.dayOverrides, d);
+      const dN = dayCount(week.schedule, state.staff, d, "D", week.leaves).length;
+      const nN = dayCount(week.schedule, state.staff, d, "N", week.leaves).length;
+      return dN !== r.D || nN !== r.N;
     }).length;
-  }, [state.staff, week.schedule]);
+  }, [state.staff, week]);
 
   const isCurrentWeek = state.currentWeekKey === thisWeekKey();
   const archivedCount = Object.keys(state.weeks).length;
 
-  /* ---------- exports + print ---------- */
+  /* ---------- exports + print + share ---------- */
 
   function exportSchedule() {
     const csv = buildScheduleCsv(
       state.staff,
       week.schedule,
       week.manualPay,
+      week.leaves,
       weekLabel
     );
     downloadCsv(`schedule-${state.currentWeekKey}.csv`, csv);
@@ -152,10 +195,41 @@ export default function Home() {
       state.staff,
       week.schedule,
       week.manualPay,
+      week.leaves,
       weekLabel
     );
     downloadCsv(`payroll-${state.currentWeekKey}.csv`, csv);
   }
+  function exportJson() {
+    downloadJson(`roster-backup-${new Date().toISOString().slice(0, 10)}.json`, state);
+    flashToast("Backup downloaded");
+  }
+  function importJson(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const next = parseState(parsed);
+        setState(next);
+        flashToast("Roster restored from backup");
+      } catch {
+        flashToast("Could not read that JSON file");
+      }
+    };
+    reader.readAsText(file);
+  }
+  function shareLink() {
+    const code = encodeShare({
+      staff: state.staff,
+      shiftTimes: state.shiftTimes,
+      weekKey: state.currentWeekKey,
+      week,
+    });
+    const url = `${location.origin}/share/${code}`;
+    void navigator.clipboard.writeText(url).catch(() => {});
+    flashToast("Read-only link copied to clipboard");
+  }
+
   function handlePrint(mode: PrintMode) {
     setPrintMode(mode);
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
@@ -169,6 +243,11 @@ export default function Home() {
       return;
     localStorage.removeItem(STORAGE_KEY);
     setState(makeDefaultState());
+  }
+
+  function flashToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
   }
 
   const counts: Record<Tab, string> = {
@@ -198,8 +277,8 @@ export default function Home() {
             </h1>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-soft">
               A weekly staffing record for a children&rsquo;s home running
-              continuous care. Each week is archived independently — pick a
-              week, tweak the roster, settle the books, then print or export.
+              continuous care. Each week archived, leaves tracked, and rules
+              checked. Print, export, share — pick your channel.
             </p>
             <div className="mt-4 font-mono text-[11px] tracking-[0.2em] uppercase text-ink-soft">
               <span className="text-ink">Week of {weekLabel}</span>
@@ -228,22 +307,22 @@ export default function Home() {
                 <span className="text-ink">{state.staff.length}</span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2">
-                <span>Coverage</span>
-                <span className={flagged > 0 ? "text-terracotta" : "text-sage"}>
-                  {flagged > 0
-                    ? `${flagged} flag${flagged > 1 ? "s" : ""}`
-                    : "all clear"}
+                <span>Issues</span>
+                <span className={violations.length > 0 ? "text-terracotta" : "text-sage"}>
+                  {violations.length === 0 ? "all clear" : violations.length}
                 </span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2 col-span-2">
-                <span>Archived weeks</span>
-                <span className="text-ink">{archivedCount}</span>
+                <span>Archived weeks · sync</span>
+                <span className="text-ink">
+                  {archivedCount} · <SyncDot status={sync} />
+                </span>
               </div>
             </div>
             <div className="mt-6 flex items-center gap-3">
               <span className="stamp">Edition · {weekLabel}</span>
               <span className="text-[11px] font-mono uppercase tracking-widest text-ink-soft">
-                Version 3.0
+                Version 4.0
               </span>
             </div>
           </div>
@@ -253,7 +332,6 @@ export default function Home() {
       {/* STICKY TAB BAR */}
       <nav className="screen-only sticky top-0 z-40 bg-paper/92 backdrop-blur-md border-y border-ink/30">
         <div className="px-6 md:px-12 lg:px-20">
-          {/* Row 1: tabs + actions */}
           <div className="flex items-stretch justify-between gap-6">
             <div className="flex items-stretch overflow-x-auto -mx-2 px-2">
               {TABS.map((tt) => {
@@ -293,39 +371,43 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={exportSchedule}
-                className="action-btn"
-                title="Download schedule CSV"
-              >
-                ⇣ schedule
+              <button onClick={exportSchedule} className="action-btn" title="Schedule CSV">
+                ⇣ csv·sched
+              </button>
+              <button onClick={exportPayroll} className="action-btn" title="Payroll CSV">
+                ⇣ csv·pay
+              </button>
+              <button onClick={() => handlePrint("calendar")} className="action-btn" title="Print calendar">
+                ⎙ cal
+              </button>
+              <button onClick={() => handlePrint("payroll")} className="action-btn" title="Print payroll">
+                ⎙ pay
+              </button>
+              <button onClick={shareLink} className="action-btn" title="Copy read-only link">
+                ⇪ share
+              </button>
+              <button onClick={exportJson} className="action-btn-ghost" title="Backup JSON">
+                ⇣ json
               </button>
               <button
-                onClick={exportPayroll}
-                className="action-btn"
-                title="Download payroll CSV"
+                onClick={() => importInputRef.current?.click()}
+                className="action-btn-ghost"
+                title="Restore from JSON"
               >
-                ⇣ payroll
+                ⇡ json
               </button>
-              <button
-                onClick={() => handlePrint("calendar")}
-                className="action-btn"
-                title="Print weekly calendar"
-              >
-                ⎙ calendar
-              </button>
-              <button
-                onClick={() => handlePrint("payroll")}
-                className="action-btn"
-                title="Print weekly payroll"
-              >
-                ⎙ payroll
-              </button>
-              <button
-                onClick={handleReset}
-                className="action-btn-ghost hidden md:inline"
-                title="Reset all weeks to PRD defaults"
-              >
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json"
+                hidden
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) importJson(f);
+                  e.target.value = "";
+                }}
+              />
+              <button onClick={handleReset} className="action-btn-ghost hidden md:inline">
                 reset
               </button>
             </div>
@@ -334,32 +416,15 @@ export default function Home() {
           {/* Row 2: week navigation */}
           <div className="flex items-center justify-between gap-3 py-3 border-t border-ink/20">
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => jumpWeek(-1)}
-                className="week-nav-btn"
-                title="Previous week"
-                aria-label="Previous week"
-              >
-                ←
-              </button>
+              <button onClick={() => jumpWeek(-1)} className="week-nav-btn" aria-label="Previous">←</button>
               <button
                 onClick={gotoThisWeek}
-                className={`action-btn-ghost ${
-                  isCurrentWeek ? "opacity-40" : ""
-                }`}
+                className={`action-btn-ghost ${isCurrentWeek ? "opacity-40" : ""}`}
                 disabled={isCurrentWeek}
-                title="Jump to this week"
               >
                 this week
               </button>
-              <button
-                onClick={() => jumpWeek(1)}
-                className="week-nav-btn"
-                title="Next week"
-                aria-label="Next week"
-              >
-                →
-              </button>
+              <button onClick={() => jumpWeek(1)} className="week-nav-btn" aria-label="Next">→</button>
             </div>
             <div className="font-display text-lg md:text-xl leading-none truncate">
               {weekLabel}
@@ -378,16 +443,21 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* SCREEN PANELS */}
+      {/* PANELS */}
       <div className="screen-only px-6 md:px-12 lg:px-20 pb-24">
         {tab === "schedule" && (
           <SchedulePanel
             staff={state.staff}
             schedule={week.schedule}
             manualPay={week.manualPay}
+            notes={week.notes}
+            leaves={week.leaves}
             dates={dates}
+            violations={violations}
             setSchedule={setSchedule}
             setManualPay={setManualPay}
+            setNotes={setNotes}
+            setLeaves={setLeaves}
           />
         )}
         {tab === "calendar" && (
@@ -396,10 +466,15 @@ export default function Home() {
             schedule={week.schedule}
             shiftTimes={state.shiftTimes}
             dayOverrides={week.dayOverrides}
+            notes={week.notes}
+            leaves={week.leaves}
             dates={dates}
+            violations={violations}
             setSchedule={setSchedule}
             setShiftTimes={setShiftTimes}
             setDayOverrides={setDayOverrides}
+            setNotes={setNotes}
+            setLeaves={setLeaves}
           />
         )}
         {tab === "staff" && (
@@ -407,9 +482,11 @@ export default function Home() {
             staff={state.staff}
             schedule={week.schedule}
             manualPay={week.manualPay}
+            leaves={week.leaves}
             setStaff={setStaff}
             setSchedule={setSchedule}
             setManualPay={setManualPay}
+            setLeaves={setLeaves}
           />
         )}
         {tab === "payroll" && (
@@ -417,12 +494,12 @@ export default function Home() {
             staff={state.staff}
             schedule={week.schedule}
             manualPay={week.manualPay}
+            leaves={week.leaves}
             setManualPay={setManualPay}
           />
         )}
       </div>
 
-      {/* FOOTER */}
       <footer className="screen-only px-6 md:px-12 lg:px-20 py-10 border-t border-ink/30 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <div className="font-display text-2xl leading-none">
@@ -438,6 +515,8 @@ export default function Home() {
         </div>
       </footer>
 
+      {toast && <div className="toast">{toast}</div>}
+
       <PrintView
         mode={printMode}
         staff={state.staff}
@@ -445,9 +524,31 @@ export default function Home() {
         shiftTimes={state.shiftTimes}
         dayOverrides={week.dayOverrides}
         manualPay={week.manualPay}
+        notes={week.notes}
+        leaves={week.leaves}
         dates={dates}
         weekLabel={weekLabel}
       />
     </main>
+  );
+}
+
+function SyncDot({ status }: { status: SyncStatus }) {
+  const map: Record<SyncStatus, { color: string; label: string }> = {
+    local: { color: "var(--ink-soft)", label: "local" },
+    syncing: { color: "var(--ochre)", label: "syncing" },
+    synced: { color: "var(--sage)", label: "synced" },
+    error: { color: "var(--terracotta)", label: "sync err" },
+    off: { color: "var(--ink-soft)", label: "no sync" },
+  };
+  const { color, label } = map[status];
+  return (
+    <span title={label} className="inline-flex items-center gap-1.5">
+      <span
+        className="inline-block w-2 h-2 rounded-full align-middle"
+        style={{ background: color }}
+      />
+      <span className="text-[10px]">{label}</span>
+    </span>
   );
 }
