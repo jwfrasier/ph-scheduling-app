@@ -14,10 +14,55 @@ import {
   effectiveTimes,
   fmtDayDate,
   pesos,
+  shiftCount,
+  staffPay,
   totals,
 } from "../lib/data";
 
+export type PrintMode = "calendar" | "payroll";
+
 export default function PrintView({
+  mode,
+  staff,
+  schedule,
+  shiftTimes,
+  dayOverrides,
+  dates,
+  weekLabel,
+}: {
+  mode: PrintMode;
+  staff: Staff[];
+  schedule: Schedule;
+  shiftTimes: ShiftTimes;
+  dayOverrides: DayOverrides;
+  dates: Record<Day, Date>;
+  weekLabel: string;
+}) {
+  return (
+    <div className="print-only print-sheet">
+      {mode === "calendar" ? (
+        <PrintCalendar
+          staff={staff}
+          schedule={schedule}
+          shiftTimes={shiftTimes}
+          dayOverrides={dayOverrides}
+          dates={dates}
+          weekLabel={weekLabel}
+        />
+      ) : (
+        <PrintPayroll
+          staff={staff}
+          schedule={schedule}
+          weekLabel={weekLabel}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ───────────── calendar report ───────────── */
+
+function PrintCalendar({
   staff,
   schedule,
   shiftTimes,
@@ -32,10 +77,8 @@ export default function PrintView({
   dates: Record<Day, Date>;
   weekLabel: string;
 }) {
-  const t = totals(staff, schedule);
-
   return (
-    <div className="print-only print-sheet">
+    <>
       <header className="print-head">
         <div>
           <div className="print-eyebrow">Children&rsquo;s Home · Operations</div>
@@ -85,9 +128,7 @@ export default function PrintView({
                     {eff.D.start}–{eff.D.end}
                   </span>
                   <span
-                    className={`print-shift-count ${
-                      dayOk ? "" : "print-flag"
-                    }`}
+                    className={`print-shift-count ${dayOk ? "" : "print-flag"}`}
                   >
                     {dayStaff.length}/{REQUIRED_DAY}
                   </span>
@@ -109,9 +150,7 @@ export default function PrintView({
                     {eff.N.start}–{eff.N.end}
                   </span>
                   <span
-                    className={`print-shift-count ${
-                      nightOk ? "" : "print-flag"
-                    }`}
+                    className={`print-shift-count ${nightOk ? "" : "print-flag"}`}
                   >
                     {nightStaff.length}/{REQUIRED_NIGHT}
                   </span>
@@ -130,9 +169,122 @@ export default function PrintView({
         })}
       </div>
 
+      <p className="print-note">
+        ✶ marks a day with custom shift times. Cells where staffing diverges
+        from target are flagged.
+      </p>
+    </>
+  );
+}
+
+/* ───────────── payroll report ───────────── */
+
+function PrintPayroll({
+  staff,
+  schedule,
+  weekLabel,
+}: {
+  staff: Staff[];
+  schedule: Schedule;
+  weekLabel: string;
+}) {
+  const t = totals(staff, schedule);
+  const auto = staff.filter((s) => !s.manual);
+  const manual = staff.filter((s) => s.manual);
+
+  return (
+    <>
+      <header className="print-head">
+        <div>
+          <div className="print-eyebrow">Children&rsquo;s Home · Operations</div>
+          <h1 className="print-title">
+            Weekly <em>Payroll</em>
+          </h1>
+        </div>
+        <div className="print-meta">
+          <div>
+            <strong>{weekLabel}</strong>
+          </div>
+          <div>
+            {staff.length} caregivers · {auto.length} auto · {manual.length} manual
+          </div>
+        </div>
+      </header>
+
+      <table className="print-table">
+        <thead>
+          <tr>
+            <th align="left">Caregiver</th>
+            <th align="left">Role</th>
+            <th align="center">Shifts</th>
+            <th align="right">Rate</th>
+            <th align="right">Pay</th>
+          </tr>
+        </thead>
+        <tbody>
+          {auto.length > 0 && (
+            <tr>
+              <td colSpan={5} className="print-section">
+                Auto · shift-based
+              </td>
+            </tr>
+          )}
+          {auto.map((s) => {
+            const c = shiftCount(schedule, s.id);
+            return (
+              <tr key={s.id}>
+                <td>
+                  <strong>{s.name}</strong>
+                </td>
+                <td className="print-role">{s.role}</td>
+                <td align="center">{c}</td>
+                <td align="right">{pesos(s.rate)}</td>
+                <td align="right">{pesos(c * s.rate)}</td>
+              </tr>
+            );
+          })}
+          <tr className="print-subtotal">
+            <td colSpan={4} align="right">
+              Auto subtotal
+            </td>
+            <td align="right">{pesos(t.auto)}</td>
+          </tr>
+
+          {manual.length > 0 && (
+            <tr>
+              <td colSpan={5} className="print-section">
+                Manual · senior arrangements
+              </td>
+            </tr>
+          )}
+          {manual.map((s) => {
+            const c = shiftCount(schedule, s.id);
+            return (
+              <tr key={s.id}>
+                <td>
+                  <strong>{s.name}</strong>
+                </td>
+                <td className="print-role">{s.role}</td>
+                <td align="center">{c}</td>
+                <td align="right">manual</td>
+                <td align="right">{pesos(staffPay(s, schedule))}</td>
+              </tr>
+            );
+          })}
+          {manual.length > 0 && (
+            <tr className="print-subtotal">
+              <td colSpan={4} align="right">
+                Manual subtotal
+              </td>
+              <td align="right">{pesos(t.manual)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
       <footer className="print-foot">
         <div>
-          <div className="print-eyebrow">Settlement</div>
+          <div className="print-eyebrow">Summary</div>
           <div>Auto · {pesos(t.auto)}</div>
           <div>Manual · {pesos(t.manual)}</div>
         </div>
@@ -142,10 +294,16 @@ export default function PrintView({
         </div>
       </footer>
 
-      <p className="print-note">
-        ✶ marks a day with custom shift times. Cells where staffing diverges
-        from target are flagged. Pay summary covers the full week.
-      </p>
-    </div>
+      <div className="print-sign">
+        <div>
+          <div className="print-sign-line" />
+          <div className="print-sign-label">Prepared by</div>
+        </div>
+        <div>
+          <div className="print-sign-line" />
+          <div className="print-sign-label">Approved · date</div>
+        </div>
+      </div>
+    </>
   );
 }

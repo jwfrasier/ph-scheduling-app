@@ -631,6 +631,48 @@ input.amount-input:focus {
   letter-spacing: 0.04em;
 }
 
+.print-section {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: #b85a36;
+  padding-top: 10px !important;
+  border-bottom: none !important;
+}
+
+.print-subtotal td {
+  border-top: 0.6pt solid #1a1a1a;
+  border-bottom: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #333;
+  padding-top: 8px;
+}
+
+.print-sign {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24mm;
+  margin-top: 16mm;
+}
+
+.print-sign-line {
+  border-bottom: 0.6pt solid #1a1a1a;
+  height: 14mm;
+}
+
+.print-sign-label {
+  font-family: var(--font-mono);
+  font-size: 8pt;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #555;
+  margin-top: 2mm;
+}
+
 .schedule-table {
   border-collapse: separate;
   border-spacing: 0;

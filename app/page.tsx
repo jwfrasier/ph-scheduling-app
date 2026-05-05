@@ -26,7 +26,7 @@ import SchedulePanel from "./components/Schedule";
 import CalendarPanel from "./components/Calendar";
 import StaffPanel from "./components/Staff";
 import PayrollPanel from "./components/Payroll";
-import PrintView from "./components/PrintView";
+import PrintView, { PrintMode } from "./components/PrintView";
 
 type Tab = "schedule" | "calendar" | "staff" | "payroll";
 
@@ -41,6 +41,7 @@ export default function Home() {
   const [tab, setTab] = useState<Tab>("schedule");
   const [hydrated, setHydrated] = useState(false);
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
+  const [printMode, setPrintMode] = useState<PrintMode>("calendar");
 
   useEffect(() => {
     setState(loadState());
@@ -82,6 +83,11 @@ export default function Home() {
     const csv = buildCsv(state.staff, state.schedule);
     const stamp = new Date().toISOString().slice(0, 10);
     downloadCsv(`roster-${stamp}.csv`, csv);
+  }
+
+  function handlePrint(mode: PrintMode) {
+    setPrintMode(mode);
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
 
   function handleReset() {
@@ -212,16 +218,23 @@ export default function Home() {
               <button
                 onClick={handleExport}
                 className="action-btn"
-                title="Download CSV"
+                title="Download full schedule as CSV"
               >
                 ⇣ csv
               </button>
               <button
-                onClick={() => window.print()}
+                onClick={() => handlePrint("calendar")}
                 className="action-btn"
-                title="Print or save as PDF"
+                title="Print weekly calendar"
               >
-                ⎙ print
+                ⎙ calendar
+              </button>
+              <button
+                onClick={() => handlePrint("payroll")}
+                className="action-btn"
+                title="Print weekly payroll"
+              >
+                ⎙ payroll
               </button>
               <button
                 onClick={handleReset}
@@ -296,6 +309,7 @@ export default function Home() {
 
       {/* PRINT VIEW */}
       <PrintView
+        mode={printMode}
         staff={state.staff}
         schedule={state.schedule}
         shiftTimes={state.shiftTimes}
