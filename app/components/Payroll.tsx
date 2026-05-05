@@ -1,29 +1,31 @@
 "use client";
 
 import {
+  ManualPayMap,
   Schedule,
   Staff,
   pesos,
   shiftCount,
-  staffPay,
   totals,
 } from "../lib/data";
 
 export default function PayrollPanel({
   staff,
   schedule,
-  setStaff,
+  manualPay,
+  setManualPay,
 }: {
   staff: Staff[];
   schedule: Schedule;
-  setStaff: (next: Staff[]) => void;
+  manualPay: ManualPayMap;
+  setManualPay: (next: ManualPayMap) => void;
 }) {
-  const t = totals(staff, schedule);
+  const t = totals(staff, schedule, manualPay);
   const auto = staff.filter((s) => !s.manual);
   const manual = staff.filter((s) => s.manual);
 
-  function setManualPay(id: string, val: number) {
-    setStaff(staff.map((s) => (s.id === id ? { ...s, manualPay: val } : s)));
+  function setPay(id: string, val: number) {
+    setManualPay({ ...manualPay, [id]: val });
   }
 
   return (
@@ -39,7 +41,8 @@ export default function PayrollPanel({
         <p className="text-[15px] leading-relaxed text-ink-soft max-w-prose">
           Automatic line items multiply each caregiver&rsquo;s shift count by
           their personal rate. Manual entries override the calculation for
-          staff with bespoke arrangements.
+          staff with bespoke arrangements. Amounts apply to the week currently
+          on view.
         </p>
 
         <div className="mt-8">
@@ -59,9 +62,7 @@ export default function PayrollPanel({
                     {c} × {pesos(s.rate)}
                   </span>
                   <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
-                  <span className="font-mono tabnum">
-                    {pesos(c * s.rate)}
-                  </span>
+                  <span className="font-mono tabnum">{pesos(c * s.rate)}</span>
                 </li>
               );
             })}
@@ -95,10 +96,8 @@ export default function PayrollPanel({
                     type="number"
                     min={0}
                     step={50}
-                    value={s.manualPay ?? 0}
-                    onChange={(e) =>
-                      setManualPay(s.id, Number(e.target.value))
-                    }
+                    value={manualPay[s.id] ?? 0}
+                    onChange={(e) => setPay(s.id, Number(e.target.value))}
                   />
                 </div>
               </li>
@@ -113,7 +112,7 @@ export default function PayrollPanel({
       </div>
 
       <aside className="col-span-12 md:col-span-5 md:pl-10 md:border-l md:border-ink/20">
-        <div className="md:sticky md:top-[88px]">
+        <div className="md:sticky md:top-[140px]">
           <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft mb-4">
             Settlement
           </div>
@@ -142,9 +141,9 @@ export default function PayrollPanel({
             </div>
           </dl>
           <p className="mt-6 text-[13px] leading-relaxed text-ink-soft">
-            Use <span className="font-mono">Print</span> for a clean
-            paper-ready ledger, or <span className="font-mono">Export CSV</span>{" "}
-            to import into Sheets.
+            Use the toolbar to <span className="font-mono">⎙ payroll</span> or
+            export <span className="font-mono">⇣ payroll</span> CSV for the
+            week shown above.
           </p>
         </div>
       </aside>

@@ -2,6 +2,7 @@
 
 import {
   DEFAULT_RATE,
+  ManualPayMap,
   Schedule,
   Staff,
   pesos,
@@ -13,16 +14,23 @@ import {
 export default function StaffPanel({
   staff,
   schedule,
+  manualPay,
   setStaff,
   setSchedule,
+  setManualPay,
 }: {
   staff: Staff[];
   schedule: Schedule;
+  manualPay: ManualPayMap;
   setStaff: (next: Staff[]) => void;
   setSchedule: (next: Schedule) => void;
+  setManualPay: (next: ManualPayMap) => void;
 }) {
   function update<K extends keyof Staff>(id: string, key: K, value: Staff[K]) {
     setStaff(staff.map((s) => (s.id === id ? { ...s, [key]: value } : s)));
+  }
+  function setPay(id: string, val: number) {
+    setManualPay({ ...manualPay, [id]: val });
   }
   function remove(id: string) {
     if (!confirm("Remove this caregiver and clear their shifts?")) return;
@@ -30,6 +38,9 @@ export default function StaffPanel({
     const next = { ...schedule };
     delete next[id];
     setSchedule(next);
+    const nextPay = { ...manualPay };
+    delete nextPay[id];
+    setManualPay(nextPay);
   }
   function add() {
     const id = uid();
@@ -41,7 +52,6 @@ export default function StaffPanel({
         role: "Role · schedule",
         rate: DEFAULT_RATE,
         manual: false,
-        manualPay: 0,
       },
     ]);
   }
@@ -54,11 +64,7 @@ export default function StaffPanel({
         </span>
         <h2 className="font-display text-3xl md:text-4xl">Staff</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
-        <button
-          onClick={add}
-          className="action-btn"
-          aria-label="Add caregiver"
-        >
+        <button onClick={add} className="action-btn" aria-label="Add caregiver">
           + add caregiver
         </button>
       </div>
@@ -66,7 +72,7 @@ export default function StaffPanel({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {staff.map((s) => {
           const c = shiftCount(schedule, s.id);
-          const pay = staffPay(s, schedule);
+          const pay = staffPay(s, schedule, manualPay);
           return (
             <article
               key={s.id}
@@ -122,7 +128,7 @@ export default function StaffPanel({
                 </div>
                 <div>
                   <div className="text-[9px] tracking-widest uppercase text-ink-soft">
-                    Weekly pay
+                    This week
                   </div>
                   <div className="font-display text-xl tabnum mt-0.5 text-terracotta-deep">
                     {pesos(pay)}
@@ -152,10 +158,8 @@ export default function StaffPanel({
                       type="number"
                       min={0}
                       step={50}
-                      value={s.manualPay ?? 0}
-                      onChange={(e) =>
-                        update(s.id, "manualPay", Number(e.target.value))
-                      }
+                      value={manualPay[s.id] ?? 0}
+                      onChange={(e) => setPay(s.id, Number(e.target.value))}
                       className="amount-input max-w-[110px]"
                     />
                   </div>

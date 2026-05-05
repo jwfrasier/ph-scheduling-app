@@ -4,6 +4,7 @@ import {
   DAYS,
   DAYS_LONG,
   Day,
+  ManualPayMap,
   MAX_SHIFTS,
   Schedule,
   ShiftKind,
@@ -25,18 +26,20 @@ const NEXT: Record<"none" | ShiftKind, "none" | ShiftKind> = {
 export default function SchedulePanel({
   staff,
   schedule,
+  manualPay,
   dates,
   setSchedule,
-  setStaff,
+  setManualPay,
 }: {
   staff: Staff[];
   schedule: Schedule;
+  manualPay: ManualPayMap;
   dates: Record<Day, Date>;
   setSchedule: (next: Schedule) => void;
-  setStaff: (next: Staff[]) => void;
+  setManualPay: (next: ManualPayMap) => void;
 }) {
   const today = new Date();
-  const t = totals(staff, schedule);
+  const t = totals(staff, schedule, manualPay);
 
   function toggleCell(staffId: string, day: Day) {
     const current = schedule[staffId]?.[day] ?? null;
@@ -49,7 +52,7 @@ export default function SchedulePanel({
   }
 
   function updateManual(id: string, val: number) {
-    setStaff(staff.map((s) => (s.id === id ? { ...s, manualPay: val } : s)));
+    setManualPay({ ...manualPay, [id]: val });
   }
 
   return (
@@ -165,7 +168,7 @@ export default function SchedulePanel({
                           type="number"
                           min={0}
                           step={50}
-                          value={s.manualPay ?? 0}
+                          value={manualPay[s.id] ?? 0}
                           onChange={(e) =>
                             updateManual(s.id, Number(e.target.value))
                           }
@@ -173,7 +176,7 @@ export default function SchedulePanel({
                       </div>
                     ) : (
                       <span className="font-mono tabnum text-sm">
-                        {pesos(staffPay(s, schedule))}
+                        {pesos(staffPay(s, schedule, manualPay))}
                       </span>
                     )}
                   </td>

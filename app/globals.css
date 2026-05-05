@@ -238,6 +238,37 @@ input.amount-input:focus {
   border-color: var(--terracotta);
 }
 
+.action-btn-ghost:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.week-nav-btn {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 160ms ease;
+}
+
+.week-nav-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateY(-1px);
+}
+
+.week-nav-btn:active {
+  transform: translateY(0);
+}
+
 /* ───────────── form inputs ───────────── */
 
 .time-input,

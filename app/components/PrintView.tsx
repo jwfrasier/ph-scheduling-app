@@ -5,6 +5,7 @@ import {
   DAYS_LONG,
   Day,
   DayOverrides,
+  ManualPayMap,
   REQUIRED_DAY,
   REQUIRED_NIGHT,
   Schedule,
@@ -27,6 +28,7 @@ export default function PrintView({
   schedule,
   shiftTimes,
   dayOverrides,
+  manualPay,
   dates,
   weekLabel,
 }: {
@@ -35,6 +37,7 @@ export default function PrintView({
   schedule: Schedule;
   shiftTimes: ShiftTimes;
   dayOverrides: DayOverrides;
+  manualPay: ManualPayMap;
   dates: Record<Day, Date>;
   weekLabel: string;
 }) {
@@ -53,6 +56,7 @@ export default function PrintView({
         <PrintPayroll
           staff={staff}
           schedule={schedule}
+          manualPay={manualPay}
           weekLabel={weekLabel}
         />
       )}
@@ -182,13 +186,15 @@ function PrintCalendar({
 function PrintPayroll({
   staff,
   schedule,
+  manualPay,
   weekLabel,
 }: {
   staff: Staff[];
   schedule: Schedule;
+  manualPay: ManualPayMap;
   weekLabel: string;
 }) {
-  const t = totals(staff, schedule);
+  const t = totals(staff, schedule, manualPay);
   const auto = staff.filter((s) => !s.manual);
   const manual = staff.filter((s) => s.manual);
 
@@ -267,7 +273,7 @@ function PrintPayroll({
                 <td className="print-role">{s.role}</td>
                 <td align="center">{c}</td>
                 <td align="right">manual</td>
-                <td align="right">{pesos(staffPay(s, schedule))}</td>
+                <td align="right">{pesos(staffPay(s, schedule, manualPay))}</td>
               </tr>
             );
           })}
