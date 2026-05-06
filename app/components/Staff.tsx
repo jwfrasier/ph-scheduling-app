@@ -8,13 +8,14 @@ import {
   DayShiftAllow,
   LeavesMap,
   ManualPayMap,
+  MAX_SHIFTS,
   RecurringLeavesMap,
   Schedule,
   ShiftConstraints,
   Staff,
   constraintFor,
+  maxShiftsFor,
   pesos,
-  shiftCount,
   staffPay,
   uid,
 } from "../lib/data";
@@ -42,6 +43,7 @@ type EditDraft = {
   rate: number;
   manual: boolean;
   manualPay: number;
+  maxShifts: number;
   shiftConstraints: ShiftConstraints;
 };
 
@@ -89,6 +91,7 @@ export default function StaffPanel({
       rate: s.rate,
       manual: s.manual,
       manualPay: manualPay[s.id] ?? 0,
+      maxShifts: maxShiftsFor(s),
       shiftConstraints: seeded,
     });
   }
@@ -100,6 +103,26 @@ export default function StaffPanel({
       ...draft,
       shiftConstraints: { ...draft.shiftConstraints, [d]: next },
     });
+  }
+
+  /** Cycle and immediately persist a single day's constraint. Used by the
+   *  always-clickable pills outside edit mode so changes survive a refresh. */
+  function cycleAndPersist(s: Staff, d: Day) {
+    const seeded: ShiftConstraints = {};
+    for (const day of DAYS) seeded[day] = constraintFor(s, day);
+    seeded[d] = CYCLE[seeded[d] ?? "DN"];
+    const allDN = DAYS.every((day) => seeded[day] === "DN");
+    setStaff(
+      staff.map((x) =>
+        x.id === s.id
+          ? {
+              ...x,
+              allowedDays: undefined,
+              shiftConstraints: allDN ? undefined : seeded,
+            }
+          : x
+      )
+    );
   }
   function cancelEdit() {
     setEditingId(null);
@@ -113,6 +136,7 @@ export default function StaffPanel({
     }
     // If every day is "DN", drop the constraint entirely (no constraint).
     const allDN = DAYS.every((d) => draft.shiftConstraints[d] === "DN");
+    const cap = Math.max(1, Math.min(7, Math.round(draft.maxShifts)));
     setStaff(
       staff.map((s) =>
         s.id === id
@@ -124,6 +148,7 @@ export default function StaffPanel({
               manual: draft.manual,
               allowedDays: undefined,
               shiftConstraints: allDN ? undefined : draft.shiftConstraints,
+              maxShifts: cap === MAX_SHIFTS ? undefined : cap,
             }
           : s
       )
@@ -225,8 +250,8 @@ export default function StaffPanel({
           </div>
         )}
         {filtered.map((s) => {
-          const c = shiftCount(schedule, s.id);
           const pay = staffPay(s, schedule, manualPay, leaves);
+          const cap = maxShiftsFor(s);
           const isNew = s.id === highlightId;
           const editing = editingId === s.id;
           const drafted = editing ? draft! : null;
@@ -360,9 +385,29 @@ export default function StaffPanel({
                 </div>
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
-                    Shifts / wk
+                    Max / wk
                   </div>
-                  <div className="font-display text-xl tabnum mt-0.5">{c}</div>
+                  {editing ? (
+                    <input
+                      type="number"
+                      min={1}
+                      max={7}
+                      step={1}
+                      value={drafted!.maxShifts}
+                      onChange={(e) =>
+                        setDraft({
+                          ...drafted!,
+                          maxShifts: Number(e.target.value),
+                        })
+                      }
+                      className="amount-input"
+                      aria-label="Maximum shifts per week"
+                    />
+                  ) : (
+                    <div className="font-display text-xl tabnum mt-0.5">
+                      {cap}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
@@ -374,8 +419,8 @@ export default function StaffPanel({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between gap-3 flex-wrap">
-                {editing ? (
+              {editing && (
+                <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between gap-3 flex-wrap">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -389,26 +434,8 @@ export default function StaffPanel({
                       Salaried
                     </span>
                   </label>
-                ) : (
-                  <span
-                    className={`font-mono text-[14px] tracking-[0.2em] uppercase ${
-                      s.manual ? "text-terracotta" : "text-ink-soft"
-                    }`}
-                  >
-                    {s.manual ? "Salaried" : "Per shift"}
-                  </span>
-                )}
-                {!editing &&
-                  (s.manual ? (
-                    <span className="font-mono text-base tabnum">
-                      {pesos(manualPay[s.id] ?? 0)} / period
-                    </span>
-                  ) : (
-                    <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
-                      {c} × {pesos(s.rate)}
-                    </span>
-                  ))}
-              </div>
+                </div>
+              )}
 
               {/* Per-day shift constraints */}
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
@@ -417,9 +444,7 @@ export default function StaffPanel({
                     Shift constraints
                   </div>
                   <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft/70">
-                    {editing
-                      ? "click to cycle · off → day → night → both"
-                      : "edit to change"}
+                    click to cycle · off → day → night → both
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-2">
@@ -429,33 +454,21 @@ export default function StaffPanel({
                       : constraintFor(s, d);
                     const cls = `constraint-pill is-${allow.toLowerCase()}`;
                     const title = `${DAYS_LONG[d]} · ${ALLOW_LABEL[allow]}`;
-                    if (editing) {
-                      return (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => cycleConstraint(d)}
-                          className={cls}
-                          title={title}
-                        >
-                          <span className="constraint-pill-day">{d}</span>
-                          <span className="constraint-pill-state">
-                            {ALLOW_LABEL[allow]}
-                          </span>
-                        </button>
-                      );
-                    }
                     return (
-                      <div
+                      <button
                         key={d}
-                        className={`${cls} is-static`}
+                        type="button"
+                        onClick={() =>
+                          editing ? cycleConstraint(d) : cycleAndPersist(s, d)
+                        }
+                        className={cls}
                         title={title}
                       >
                         <span className="constraint-pill-day">{d}</span>
                         <span className="constraint-pill-state">
                           {ALLOW_LABEL[allow]}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

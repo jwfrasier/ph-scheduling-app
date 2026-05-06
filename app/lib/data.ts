@@ -29,9 +29,17 @@ export type Staff = {
   manual: boolean;
   /** Per-day shift constraint. Missing day = unrestricted (DN). */
   shiftConstraints?: ShiftConstraints;
+  /** Per-staff override of MAX_SHIFTS for the weekly cap. */
+  maxShifts?: number;
   /** Legacy boolean-per-day. Still honored if shiftConstraints is absent. */
   allowedDays?: Day[];
 };
+
+export function maxShiftsFor(s: Staff): number {
+  return typeof s.maxShifts === "number" && s.maxShifts > 0
+    ? s.maxShifts
+    : MAX_SHIFTS;
+}
 
 /** Resolve the effective constraint for a (staff, day) pair. */
 export function constraintFor(s: Staff, d: Day): DayShiftAllow {
@@ -470,12 +478,13 @@ export function lint(
         });
       }
     }
-    if (count > MAX_SHIFTS) {
+    const cap = maxShiftsFor(s);
+    if (count > cap) {
       issues.push({
         kind: "over-cap",
         staffId: s.id,
         count,
-        message: `${s.name} is over the ${MAX_SHIFTS}-shift weekly cap (${count}).`,
+        message: `${s.name} is over the ${cap}-shift weekly cap (${count}).`,
       });
     }
   }
@@ -551,6 +560,9 @@ export function repairState(state: AppState): AppState {
     for (const id of Object.keys(wk.leaves ?? {})) referenced.add(id);
     for (const id of Object.keys(wk.notes ?? {})) referenced.add(id);
   }
+  // Always restore the seeded default roster — losing Tessie/Eula/etc. via a
+  // bad merge or partial wipe shouldn't be possible.
+  for (const s of DEFAULT_STAFF) referenced.add(s.id);
   const missingIds = [...referenced].filter((id) => !known.has(id));
   if (missingIds.length === 0) return state;
   const restored: Staff[] = missingIds.map((id) => {
@@ -625,6 +637,8 @@ function stripStaff(s: Staff & { manualPay?: number }): Staff {
     rate: s.rate,
     manual: s.manual,
     allowedDays: s.allowedDays,
+    shiftConstraints: s.shiftConstraints,
+    maxShifts: s.maxShifts,
   };
 }
 
