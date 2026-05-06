@@ -74,6 +74,10 @@ export const DEFAULT_SHIFT_TIMES: ShiftTimes = {
 export const ORG_SHORT = "MCCH";
 export const ORG_FULL = "Manaoag Christian Children's Home";
 
+/** Salaried staff are paid twice per month; per-shift staff are paid weekly. */
+export const SALARIED_LABEL = "Bi-monthly";
+export const PER_SHIFT_LABEL = "Weekly";
+
 export const DEFAULT_STAFF: Staff[] = [
   { id: "tessie",  name: "Tessie",   role: "Senior caregiver · Sat–Wed", rate: 500, manual: true,  allowedDays: ["Sat", "Sun", "Mon", "Tue", "Wed"] },
   { id: "eula",    name: "Eula",     role: "Senior caregiver · Mon–Fri", rate: 500, manual: true,  allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
@@ -276,19 +280,38 @@ export function staffPay(
   return n * s.rate;
 }
 
+/**
+ * Returns four figures:
+ *   weekly  — sum of per-shift staff pay for the current week
+ *   salariedPerPeriod — sum of salaried staff's bi-monthly amount
+ *   salariedWeeklyShare — salariedPerPeriod × 2 ÷ ~4.33 weeks/month, expressed
+ *     as a per-week pro-rated figure (24 pay periods / 52 weeks ≈ 0.462)
+ *   grand   — weekly + salariedWeeklyShare (apples-to-apples weekly view)
+ */
 export function totals(
   staff: Staff[],
   schedule: Schedule,
   manualPay: ManualPayMap,
   leaves: LeavesMap = {}
 ) {
-  const auto = staff
+  const weekly = staff
     .filter((s) => !s.manual)
     .reduce((sum, s) => sum + staffPay(s, schedule, manualPay, leaves), 0);
-  const manual = staff
+  const salariedPerPeriod = staff
     .filter((s) => s.manual)
     .reduce((sum, s) => sum + (manualPay[s.id] ?? 0), 0);
-  return { auto, manual, grand: auto + manual };
+  // 24 bi-monthly pay periods per year ÷ 52 weeks ≈ 0.4615 of one period per
+  // week. Used only when showing an apples-to-apples weekly figure.
+  const salariedWeeklyShare = Math.round(salariedPerPeriod * (24 / 52));
+  return {
+    weekly,
+    salariedPerPeriod,
+    salariedWeeklyShare,
+    grand: weekly + salariedWeeklyShare,
+    // Legacy aliases retained so existing call sites keep compiling
+    auto: weekly,
+    manual: salariedPerPeriod,
+  };
 }
 
 export function effectiveTimes(
@@ -680,9 +703,9 @@ export function buildScheduleCsv(
   const blank: string[] = new Array(head.length).fill("");
   rows.push(blank);
   rows.push([`Week of ${weekLabel}`, ...blank.slice(1)]);
-  rows.push(["Auto subtotal", ...blank.slice(1, head.length - 1), String(t.auto)]);
-  rows.push(["Manual subtotal", ...blank.slice(1, head.length - 1), String(t.manual)]);
-  rows.push(["Grand total", ...blank.slice(1, head.length - 1), String(t.grand)]);
+  rows.push(["Per-shift weekly", ...blank.slice(1, head.length - 1), String(t.weekly)]);
+  rows.push(["Salaried bi-monthly (per period)", ...blank.slice(1, head.length - 1), String(t.salariedPerPeriod)]);
+  rows.push(["Weekly run-rate", ...blank.slice(1, head.length - 1), String(t.grand)]);
 
   return toCsv([head, ...rows]);
 }
@@ -702,7 +725,8 @@ export function buildPayrollCsv(
   const auto = staff.filter((s) => !s.manual);
   const manual = staff.filter((s) => s.manual);
 
-  if (auto.length > 0) rows.push(["AUTO", "", "", "", "", ""]);
+  if (auto.length > 0)
+    rows.push(["PER-SHIFT (weekly)", "", "", "", "", ""]);
   for (const s of auto) {
     let c = 0;
     const row = schedule[s.id] ?? {};
@@ -711,7 +735,7 @@ export function buildPayrollCsv(
   }
   if (manual.length > 0) {
     rows.push([]);
-    rows.push(["MANUAL", "", "", "", "", ""]);
+    rows.push(["SALARIED (bi-monthly · per period)", "", "", "", "", ""]);
   }
   for (const s of manual) {
     let c = 0;
@@ -722,9 +746,9 @@ export function buildPayrollCsv(
 
   const t = totals(staff, schedule, manualPay, leaves);
   rows.push([]);
-  rows.push(["Auto subtotal", "", "", "", "", String(t.auto)]);
-  rows.push(["Manual subtotal", "", "", "", "", String(t.manual)]);
-  rows.push(["Grand total", "", "", "", "", String(t.grand)]);
+  rows.push(["Per-shift weekly subtotal", "", "", "", "", String(t.weekly)]);
+  rows.push(["Salaried bi-monthly subtotal", "", "", "", "", String(t.salariedPerPeriod)]);
+  rows.push(["Weekly run-rate (incl. salary pro-rate)", "", "", "", "", String(t.grand)]);
 
   return toCsv([head, ...rows]);
 }

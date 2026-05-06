@@ -306,7 +306,7 @@ export default function StaffPanel({
               <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[13px]">
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
-                    {(editing ? drafted!.manual : s.manual) ? "Salary / wk" : "Rate / shift"}
+                    {(editing ? drafted!.manual : s.manual) ? "Salary · ½-mo" : "Rate / shift"}
                   </div>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-ink/40">₱</span>
@@ -390,7 +390,7 @@ export default function StaffPanel({
                 {!editing &&
                   (s.manual ? (
                     <span className="font-mono text-base tabnum">
-                      {pesos(manualPay[s.id] ?? 0)} / wk
+                      {pesos(manualPay[s.id] ?? 0)} / period
                     </span>
                   ) : (
                     <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">

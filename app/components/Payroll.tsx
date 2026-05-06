@@ -7,7 +7,6 @@ import {
   Schedule,
   Staff,
   pesos,
-  shiftCount,
   totals,
 } from "../lib/data";
 
@@ -25,8 +24,8 @@ export default function PayrollPanel({
   setManualPay: (next: ManualPayMap) => void;
 }) {
   const t = totals(staff, schedule, manualPay, leaves);
-  const auto = staff.filter((s) => !s.manual);
-  const manual = staff.filter((s) => s.manual);
+  const perShift = staff.filter((s) => !s.manual);
+  const salaried = staff.filter((s) => s.manual);
 
   function setPay(id: string, val: number) {
     setManualPay({ ...manualPay, [id]: val });
@@ -40,12 +39,12 @@ export default function PayrollPanel({
           <span className="flex-1 h-px bg-ink/20 ml-4" />
         </div>
 
-        <div className="mt-8">
+        <div className="mt-4">
           <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft mb-3">
-            Auto · shift-based
+            Per-shift · paid weekly
           </div>
           <ul>
-            {auto.map((s) => {
+            {perShift.map((s) => {
               const row = schedule[s.id] ?? {};
               let c = 0;
               for (const d of DAYS) if (row[d] && !leaves[s.id]?.[d]) c++;
@@ -63,9 +62,9 @@ export default function PayrollPanel({
                 </li>
               );
             })}
-            {auto.length === 0 && (
+            {perShift.length === 0 && (
               <li className="text-ink-soft italic font-mono text-base py-2">
-                No auto-paid staff
+                No per-shift staff
               </li>
             )}
           </ul>
@@ -73,10 +72,10 @@ export default function PayrollPanel({
 
         <div className="mt-8">
           <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft mb-3">
-            Manual · senior
+            Salaried · paid bi-monthly · 2× per month
           </div>
           <ul>
-            {manual.map((s) => (
+            {salaried.map((s) => (
               <li
                 key={s.id}
                 className="flex items-baseline py-2 border-b border-ink/10"
@@ -99,12 +98,18 @@ export default function PayrollPanel({
                 </div>
               </li>
             ))}
-            {manual.length === 0 && (
+            {salaried.length === 0 && (
               <li className="text-ink-soft italic font-mono text-base py-2">
-                No manual entries
+                No salaried staff
               </li>
             )}
           </ul>
+          {salaried.length > 0 && (
+            <div className="mt-2 font-mono text-[12px] tracking-widest uppercase text-ink-soft">
+              Each amount is for one ½-month pay period (15th &amp; end of
+              month)
+            </div>
+          )}
         </div>
       </div>
 
@@ -116,25 +121,39 @@ export default function PayrollPanel({
           <dl className="space-y-1">
             <div className="flex items-baseline">
               <dt className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
-                Auto
+                Per-shift · this week
               </dt>
               <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
-              <dd className="font-mono tabnum text-base">{pesos(t.auto)}</dd>
+              <dd className="font-mono tabnum text-base">{pesos(t.weekly)}</dd>
             </div>
             <div className="flex items-baseline">
               <dt className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
-                Manual
+                Salaried · per period
               </dt>
               <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
-              <dd className="font-mono tabnum text-base">{pesos(t.manual)}</dd>
+              <dd className="font-mono tabnum text-base">
+                {pesos(t.salariedPerPeriod)}
+              </dd>
+            </div>
+            <div className="flex items-baseline text-ink-soft">
+              <dt className="font-mono text-[12px] uppercase tracking-widest">
+                Salaried · weekly avg
+              </dt>
+              <span className="flex-1 mx-3 border-b border-dotted border-ink/20 translate-y-[-3px]" />
+              <dd className="font-mono tabnum text-sm">
+                {pesos(t.salariedWeeklyShare)}
+              </dd>
             </div>
             <div className="rule-h my-4" />
             <div className="flex items-baseline">
-              <dt className="font-display text-2xl">Grand total</dt>
+              <dt className="font-display text-2xl">Weekly run-rate</dt>
               <span className="flex-1 mx-3" />
               <dd className="font-display text-4xl text-terracotta-deep">
                 {pesos(t.grand)}
               </dd>
+            </div>
+            <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft mt-1">
+              per-shift wages + salary pro-rated to one week
             </div>
           </dl>
         </div>

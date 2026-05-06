@@ -73,11 +73,16 @@ describe("shift counting + pay", () => {
     ).toBe(1500);
   });
 
-  it("totals sum auto + manual", () => {
+  it("totals: per-shift weekly + salaried bi-monthly + weekly run-rate", () => {
     const t = totals(DEFAULT_STAFF, DEFAULT_SCHEDULE, DEFAULT_MANUAL_PAY, {});
+    expect(t.weekly).toBe(13500);
+    expect(t.salariedPerPeriod).toBe(6000);
+    // salariedWeeklyShare = round(6000 * 24/52) = round(2769.23) = 2769
+    expect(t.salariedWeeklyShare).toBe(2769);
+    expect(t.grand).toBe(13500 + 2769);
+    // legacy aliases preserved
     expect(t.auto).toBe(13500);
     expect(t.manual).toBe(6000);
-    expect(t.grand).toBe(19500);
   });
 });
 
@@ -250,11 +255,12 @@ describe("CSV builders", () => {
       "May 3 – 9"
     );
     expect(csv).toContain("Tessie");
-    expect(csv).toContain("Grand total");
-    expect(csv).toContain("19500");
+    expect(csv).toContain("Per-shift weekly");
+    expect(csv).toContain("Salaried bi-monthly");
+    expect(csv).toContain("Weekly run-rate");
   });
 
-  it("payroll CSV separates auto and manual", () => {
+  it("payroll CSV separates per-shift and salaried sections", () => {
     const csv = buildPayrollCsv(
       DEFAULT_STAFF,
       DEFAULT_SCHEDULE,
@@ -262,9 +268,9 @@ describe("CSV builders", () => {
       {},
       "May 3 – 9"
     );
-    expect(csv).toContain("AUTO");
-    expect(csv).toContain("MANUAL");
-    expect(csv).toContain("Grand total");
+    expect(csv).toContain("PER-SHIFT");
+    expect(csv).toContain("SALARIED");
+    expect(csv).toContain("Weekly run-rate");
   });
 });
 

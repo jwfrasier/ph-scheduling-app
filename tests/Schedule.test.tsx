@@ -113,10 +113,10 @@ describe("<SchedulePanel />", () => {
     expect(Object.values(next)).toContain(4500);
   });
 
-  it("renders the grand total", () => {
+  it("renders the schedule's grand total", () => {
     setup();
-    // PRD totals = 19,500 with default manual amounts
-    expect(screen.getByText("₱19,500")).toBeInTheDocument();
+    // weekly run-rate = 13,500 weekly + 6,000 × 24/52 ≈ 16,269
+    expect(screen.getByText(/₱16,269/)).toBeInTheDocument();
   });
 
   it("right-clicking a cell opens the editor", () => {

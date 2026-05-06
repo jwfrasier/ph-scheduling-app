@@ -50,6 +50,7 @@ import CalendarPanel from "./components/Calendar";
 import StaffPanel from "./components/Staff";
 import PayrollPanel from "./components/Payroll";
 import PrintView, { PrintMode } from "./components/PrintView";
+import ToolbarMenu from "./components/ToolbarMenu";
 
 type Tab = "schedule" | "calendar" | "staff" | "payroll";
 
@@ -479,34 +480,69 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={exportSchedule} className="action-btn" title="Schedule CSV">
-                ⇣ csv·sched
-              </button>
-              <button onClick={exportPayroll} className="action-btn" title="Payroll CSV">
-                ⇣ csv·pay
-              </button>
-              <button onClick={() => handlePrint("calendar")} className="action-btn" title="Print calendar">
-                ⎙ cal
-              </button>
-              <button onClick={() => handlePrint("payroll")} className="action-btn" title="Print payroll">
-                ⎙ pay
-              </button>
-              <button onClick={shareLink} className="action-btn" title="Copy read-only link">
-                ⇪ share
-              </button>
-              <button onClick={pullFromCloud} className="action-btn" title="Pull latest state from Vercel KV">
-                ⟳ cloud
-              </button>
-              <button onClick={exportJson} className="action-btn-ghost" title="Backup JSON">
-                ⇣ json
+              <button
+                onClick={() => handlePrint("calendar")}
+                className="action-btn"
+                title="Print weekly calendar"
+              >
+                ⎙ calendar
               </button>
               <button
-                onClick={() => importInputRef.current?.click()}
-                className="action-btn-ghost"
-                title="Restore from JSON"
+                onClick={() => handlePrint("payroll")}
+                className="action-btn"
+                title="Print weekly payroll"
               >
-                ⇡ json
+                ⎙ payroll
               </button>
+              <button
+                onClick={shareLink}
+                className="action-btn"
+                title="Copy read-only link"
+              >
+                ⇪ share
+              </button>
+              <button
+                onClick={pullFromCloud}
+                className="action-btn"
+                title="Pull latest state from cloud"
+              >
+                ⟳ cloud
+              </button>
+              <ToolbarMenu
+                label="files"
+                actions={[
+                  {
+                    label: "Download schedule CSV",
+                    glyph: "⇣",
+                    hint: "matrix export",
+                    onClick: exportSchedule,
+                  },
+                  {
+                    label: "Download payroll CSV",
+                    glyph: "⇣",
+                    hint: "settlement export",
+                    onClick: exportPayroll,
+                  },
+                  {
+                    label: "Backup all data (JSON)",
+                    glyph: "⇣",
+                    hint: "complete state",
+                    onClick: exportJson,
+                  },
+                  {
+                    label: "Restore from JSON…",
+                    glyph: "⇡",
+                    hint: "replace state",
+                    onClick: () => importInputRef.current?.click(),
+                  },
+                  {
+                    label: "Reset to PRD defaults",
+                    glyph: "↺",
+                    hint: "wipes everything",
+                    onClick: handleReset,
+                  },
+                ]}
+              />
               <input
                 ref={importInputRef}
                 type="file"
@@ -518,9 +554,6 @@ export default function Home() {
                   e.target.value = "";
                 }}
               />
-              <button onClick={handleReset} className="action-btn-ghost hidden md:inline">
-                reset
-              </button>
             </div>
           </div>
 

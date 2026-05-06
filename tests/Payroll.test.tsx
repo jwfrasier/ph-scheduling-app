@@ -25,10 +25,12 @@ function setup(overrides: Partial<Parameters<typeof PayrollPanel>[0]> = {}) {
 }
 
 describe("<PayrollPanel />", () => {
-  it("renders auto and manual section headings", () => {
+  it("renders per-shift and salaried section headings", () => {
     setup();
-    expect(screen.getByText(/Auto · shift-based/i)).toBeInTheDocument();
-    expect(screen.getByText(/Manual · senior/i)).toBeInTheDocument();
+    expect(screen.getByText(/Per-shift · paid weekly/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Salaried · paid bi-monthly/i)
+    ).toBeInTheDocument();
   });
 
   it("lists every auto staff with a multiplier", () => {
@@ -39,9 +41,9 @@ describe("<PayrollPanel />", () => {
     expect(screen.getAllByText(/5 × ₱500/).length).toBeGreaterThan(0);
   });
 
-  it("renders the grand total ₱19,500", () => {
+  it("renders the per-shift weekly total ₱13,500", () => {
     setup();
-    expect(screen.getByText("₱19,500")).toBeInTheDocument();
+    expect(screen.getByText("₱13,500")).toBeInTheDocument();
   });
 
   it("editing a manual amount fires setManualPay", () => {
@@ -67,6 +69,6 @@ describe("<PayrollPanel />", () => {
     setup({
       staff: DEFAULT_STAFF.filter((s) => s.manual),
     });
-    expect(screen.getByText(/No auto-paid staff/i)).toBeInTheDocument();
+    expect(screen.getByText(/No per-shift staff/i)).toBeInTheDocument();
   });
 });

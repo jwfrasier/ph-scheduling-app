@@ -327,7 +327,7 @@ function PrintPayroll({
           {auto.length > 0 && (
             <tr>
               <td colSpan={5} className="print-section">
-                Auto · shift-based
+                Per-shift · paid weekly
               </td>
             </tr>
           )}
@@ -349,15 +349,15 @@ function PrintPayroll({
           })}
           <tr className="print-subtotal">
             <td colSpan={4} align="right">
-              Auto subtotal
+              Per-shift weekly subtotal
             </td>
-            <td align="right">{pesos(t.auto)}</td>
+            <td align="right">{pesos(t.weekly)}</td>
           </tr>
 
           {manual.length > 0 && (
             <tr>
               <td colSpan={5} className="print-section">
-                Manual · senior arrangements
+                Salaried · paid bi-monthly · 2× per month
               </td>
             </tr>
           )}
@@ -380,9 +380,9 @@ function PrintPayroll({
           {manual.length > 0 && (
             <tr className="print-subtotal">
               <td colSpan={4} align="right">
-                Manual subtotal
+                Salaried bi-monthly subtotal
               </td>
-              <td align="right">{pesos(t.manual)}</td>
+              <td align="right">{pesos(t.salariedPerPeriod)}</td>
             </tr>
           )}
         </tbody>
@@ -391,11 +391,13 @@ function PrintPayroll({
       <footer className="print-foot">
         <div>
           <div className="print-eyebrow">Summary</div>
-          <div>Auto · {pesos(t.auto)}</div>
-          <div>Manual · {pesos(t.manual)}</div>
+          <div>Per-shift · {pesos(t.weekly)} / week</div>
+          <div>
+            Salaried · {pesos(t.salariedPerPeriod)} / period (2× per month)
+          </div>
         </div>
         <div className="print-grand">
-          <div className="print-eyebrow">Grand total</div>
+          <div className="print-eyebrow">Weekly run-rate</div>
           <div className="print-grand-num">{pesos(t.grand)}</div>
         </div>
       </footer>
