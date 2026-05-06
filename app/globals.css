@@ -1059,80 +1059,61 @@ kbd {
   padding: 2px 8px;
 }
 
-/* shift selectors inside staff card — three explicit options per day */
+/* shift dropdown per day inside staff card */
 
-.staff-shift-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  padding: 6px 4px 6px;
-  border: 1px solid rgba(28, 26, 23, 0.15);
-  background: rgba(255, 255, 255, 0.4);
-  position: relative;
-}
-
-.staff-shift-cell.is-blocked {
-  border-color: var(--terracotta);
-  border-style: dashed;
-}
-
-.staff-shift-cell-day {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  text-align: center;
-  color: var(--ink-soft);
-}
-
-.staff-shift-cell-options {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.staff-shift-opt {
+select.shift-select {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.04em;
-  padding: 6px 4px;
-  background: transparent;
-  border: 1px solid rgba(28, 26, 23, 0.2);
+  padding: 8px 6px;
+  border: 1px solid rgba(28, 26, 23, 0.3);
   cursor: pointer;
+  width: 100%;
+  text-align: center;
+  text-align-last: center;
+  border-radius: 0;
+  outline: none;
   transition: all 120ms ease;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 11px) calc(50% - 1px),
+    calc(100% - 6px) calc(50% - 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 22px;
+}
+
+select.shift-select.is-off {
+  background-color: rgba(255, 255, 255, 0.5);
   color: var(--ink-soft);
 }
 
-.staff-shift-opt:hover {
-  background: rgba(28, 26, 23, 0.04);
-  color: var(--ink);
-}
-
-.staff-shift-opt.is-active.is-off {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-
-.staff-shift-opt.is-active.is-day {
-  background: rgba(200, 150, 67, 0.85);
+select.shift-select.is-day {
+  background-color: rgba(200, 150, 67, 0.25);
   color: var(--ink);
   border-color: var(--ochre);
+  font-weight: 500;
 }
 
-.staff-shift-opt.is-active.is-night {
-  background: var(--night);
+select.shift-select.is-night {
+  background-color: var(--night);
   color: var(--paper);
   border-color: var(--night);
+  font-weight: 500;
 }
 
-.staff-shift-cell-warn {
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--terracotta);
-  text-align: center;
-  margin-top: 2px;
+select.shift-select:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+select.shift-select.is-blocked {
+  outline: 1px dashed var(--terracotta);
+  outline-offset: 1px;
 }
 
 /* available-days toggles in edit mode */

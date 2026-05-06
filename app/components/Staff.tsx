@@ -486,7 +486,7 @@ export default function StaffPanel({
                 )}
               </div>
 
-              {/* This week's shifts — three explicit options per day */}
+              {/* This week's shifts — one dropdown per day */}
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
                 <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
                   This week&rsquo;s shifts
@@ -496,52 +496,45 @@ export default function StaffPanel({
                     const k = (schedule[s.id]?.[d] ?? null) as ShiftKind | null;
                     const blocked =
                       s.allowedDays && !s.allowedDays.includes(d);
+                    const cls =
+                      k === "D"
+                        ? "is-day"
+                        : k === "N"
+                        ? "is-night"
+                        : "is-off";
                     return (
-                      <div
+                      <label
                         key={d}
-                        className={`staff-shift-cell ${blocked ? "is-blocked" : ""}`}
+                        className="flex flex-col gap-1 text-center"
+                        title={`${DAYS_LONG[d]} · pick a shift`}
                       >
-                        <div className="staff-shift-cell-day font-mono">
+                        <span className="font-mono text-[12px] tracking-widest uppercase text-ink-soft">
                           {d}
-                        </div>
-                        <div className="staff-shift-cell-options">
-                          <button
-                            type="button"
-                            onClick={() => setShiftValue(s.id, d, null)}
-                            className={`staff-shift-opt ${
-                              k === null ? "is-active is-off" : ""
-                            }`}
-                            title={`${DAYS_LONG[d]} · off`}
-                          >
-                            Off
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShiftValue(s.id, d, "D")}
-                            className={`staff-shift-opt ${
-                              k === "D" ? "is-active is-day" : ""
-                            }`}
-                            title={`${DAYS_LONG[d]} · day shift`}
-                          >
-                            Day
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShiftValue(s.id, d, "N")}
-                            className={`staff-shift-opt ${
-                              k === "N" ? "is-active is-night" : ""
-                            }`}
-                            title={`${DAYS_LONG[d]} · night shift`}
-                          >
-                            Night
-                          </button>
-                        </div>
+                        </span>
+                        <select
+                          value={k ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            setShiftValue(
+                              s.id,
+                              d,
+                              v === "D" ? "D" : v === "N" ? "N" : null
+                            );
+                          }}
+                          className={`shift-select ${cls} ${
+                            blocked ? "is-blocked" : ""
+                          }`}
+                        >
+                          <option value="">Off</option>
+                          <option value="D">Day</option>
+                          <option value="N">Night</option>
+                        </select>
                         {blocked && (
-                          <div className="staff-shift-cell-warn font-mono">
-                            off-limits
-                          </div>
+                          <span className="font-mono text-[10px] tracking-widest uppercase text-terracotta">
+                            !
+                          </span>
                         )}
-                      </div>
+                      </label>
                     );
                   })}
                 </div>

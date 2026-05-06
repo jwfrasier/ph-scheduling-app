@@ -134,27 +134,26 @@ describe("<StaffPanel />", () => {
     expect(next.find((s) => s.id === "teng")?.rate).toBe(600);
   });
 
-  it("clicking 'Off' on a shift cell clears that day's assignment", () => {
+  it("changing a shift dropdown to Off clears that day", () => {
     const { setSchedule } = setup();
     const card = getCard("Mary Ann");
-    // Mary Ann's Sun is N. Find the Off button in the Sun cell.
-    const offButtons = within(card)
-      .getAllByRole("button")
-      .filter((b) => /^Off$/.test(b.textContent ?? ""));
-    expect(offButtons.length).toBeGreaterThanOrEqual(7);
-    fireEvent.click(offButtons[0]); // Sun's Off
+    const shiftSelects = within(card)
+      .getAllByRole("combobox")
+      .filter((el) => el.className.includes("shift-select"));
+    expect(shiftSelects).toHaveLength(7);
+    fireEvent.change(shiftSelects[0], { target: { value: "" } }); // Sun → Off
     expect(setSchedule).toHaveBeenCalled();
     const sched = setSchedule.mock.calls[0][0] as Schedule;
     expect(sched.maryann?.Sun).toBeUndefined();
   });
 
-  it("clicking 'Night' on a shift cell sets that day to night", () => {
+  it("changing a shift dropdown to Night sets that day to N", () => {
     const { setSchedule } = setup();
     const card = getCard("Tessie");
-    const nightButtons = within(card)
-      .getAllByRole("button")
-      .filter((b) => /^Night$/.test(b.textContent ?? ""));
-    fireEvent.click(nightButtons[0]); // Sun's Night
+    const shiftSelects = within(card)
+      .getAllByRole("combobox")
+      .filter((el) => el.className.includes("shift-select"));
+    fireEvent.change(shiftSelects[0], { target: { value: "N" } }); // Sun → Night
     const sched = setSchedule.mock.calls[0][0] as Schedule;
     expect(sched.tessie?.Sun).toBe("N");
   });
@@ -180,9 +179,11 @@ describe("<StaffPanel />", () => {
   it("recurring-leave selector fires setRecurringLeaves", () => {
     const { setRecurringLeaves } = setup();
     const card = getCard("Teng");
-    const selects = within(card).getAllByRole("combobox");
-    expect(selects.length).toBe(7);
-    fireEvent.change(selects[1], { target: { value: "vacation" } });
+    const recSelects = within(card)
+      .getAllByRole("combobox")
+      .filter((el) => el.className.includes("select-input"));
+    expect(recSelects.length).toBe(7);
+    fireEvent.change(recSelects[1], { target: { value: "vacation" } });
     const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
     expect(next.teng?.Mon).toBe("vacation");
   });
@@ -192,8 +193,10 @@ describe("<StaffPanel />", () => {
       recurringLeaves: { teng: { Mon: "vacation" } },
     });
     const card = getCard("Teng");
-    const selects = within(card).getAllByRole("combobox");
-    fireEvent.change(selects[1], { target: { value: "" } });
+    const recSelects = within(card)
+      .getAllByRole("combobox")
+      .filter((el) => el.className.includes("select-input"));
+    fireEvent.change(recSelects[1], { target: { value: "" } });
     const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
     expect(next.teng).toBeUndefined();
   });
