@@ -442,31 +442,14 @@ export default function Home() {
                   <button
                     key={tt.id}
                     onClick={() => setTab(tt.id)}
-                    className={`relative group flex items-baseline gap-3 py-4 pr-7 pl-2 first:pl-0 transition-colors ${
-                      active ? "text-ink" : "text-ink-soft hover:text-ink"
-                    }`}
+                    className={`tab-btn ${active ? "tab-btn-active" : ""}`}
                   >
-                    <span
-                      className={`font-mono text-[14px] tracking-[0.25em] uppercase ${
-                        active ? "text-terracotta" : "text-ink-soft/70"
-                      }`}
-                    >
-                      §{tt.numeral}
-                    </span>
                     <span className="font-display text-[20px] md:text-[24px] leading-none">
                       {tt.label}
                     </span>
-                    <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft/70 hidden md:inline">
+                    <span className="font-mono text-[13px] tracking-widest uppercase text-ink-soft/80 hidden md:inline">
                       {counts[tt.id]}
                     </span>
-                    <span
-                      aria-hidden
-                      className={`absolute left-0 right-5 -bottom-px h-[2px] origin-left transition-transform ${
-                        active
-                          ? "bg-terracotta scale-x-100"
-                          : "bg-ink/40 scale-x-0 group-hover:scale-x-100"
-                      }`}
-                    />
                   </button>
                 );
               })}
@@ -596,6 +579,7 @@ export default function Home() {
             manualPay={week.manualPay}
             notes={week.notes}
             leaves={week.leaves}
+            dayOverrides={week.dayOverrides}
             dates={dates}
             violations={violations}
             setSchedule={setSchedule}

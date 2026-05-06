@@ -28,6 +28,7 @@ import {
 } from "../lib/data";
 import Violations from "./Violations";
 import CellEditor from "./CellEditor";
+import CoverageStrip from "./CoverageStrip";
 
 type Zone = "D" | "N" | "off" | "leave";
 
@@ -163,7 +164,18 @@ export default function CalendarPanel({
         }}
       />
 
-      <div className="flex items-baseline gap-4 mb-6 mt-6">
+      <div className="mt-6">
+        <CoverageStrip
+          staff={staff}
+          schedule={schedule}
+          leaves={leaves}
+          dayOverrides={dayOverrides}
+          dates={dates}
+          onJumpDay={setDay}
+        />
+      </div>
+
+      <div className="flex items-baseline gap-4 mb-6 mt-8">
         <h2 className="font-display text-3xl md:text-4xl">Calendar</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
       </div>

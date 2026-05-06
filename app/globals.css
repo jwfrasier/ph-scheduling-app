@@ -523,6 +523,210 @@ input.amount-input:focus {
 
 /* ───────────── toast ───────────── */
 
+/* ───────────── tab buttons ───────────── */
+
+.tab-btn {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 14px 18px 14px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-soft);
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.tab-btn:hover {
+  color: var(--ink);
+  background: rgba(28, 26, 23, 0.04);
+}
+
+.tab-btn-active {
+  color: var(--ink);
+  background: var(--paper-deep);
+  box-shadow: inset 0 3px 0 0 var(--terracotta);
+}
+
+.tab-btn-active:hover {
+  background: var(--paper-deep);
+}
+
+/* ───────────── coverage strip ───────────── */
+
+.coverage-strip {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--rule);
+  padding: 16px 18px 14px;
+}
+
+.coverage-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.coverage-strip-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex: 1 1 auto;
+}
+
+.coverage-strip-status {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-variation-settings: "opsz" 144;
+  letter-spacing: -0.01em;
+}
+
+.coverage-strip-meter {
+  position: relative;
+  flex: 0 0 220px;
+  height: 16px;
+  background: rgba(28, 26, 23, 0.06);
+  border: 1px solid rgba(28, 26, 23, 0.2);
+  overflow: hidden;
+}
+
+.coverage-strip-meter-fill {
+  height: 100%;
+  transition: width 320ms cubic-bezier(0.2, 0.6, 0.2, 1),
+    background-color 320ms ease;
+}
+
+.coverage-strip-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  mix-blend-mode: difference;
+  filter: invert(1);
+  font-feature-settings: "tnum";
+}
+
+.coverage-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.coverage-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  background: var(--paper);
+  border: 1px solid rgba(28, 26, 23, 0.15);
+  cursor: pointer;
+  transition: border-color 160ms ease, transform 160ms ease,
+    background 160ms ease;
+  text-align: left;
+}
+
+.coverage-day:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.coverage-day.is-today {
+  border-color: var(--terracotta);
+  background: rgba(184, 90, 54, 0.04);
+}
+
+.coverage-day-label {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
+.coverage-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+}
+
+.coverage-row-label {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(28, 26, 23, 0.4);
+}
+
+.coverage-row-d .coverage-row-label {
+  color: var(--ochre);
+}
+
+.coverage-row-n .coverage-row-label {
+  color: var(--night);
+}
+
+.coverage-row-flag {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--terracotta);
+}
+
+.coverage-pip {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 10px;
+}
+
+.coverage-pip-day {
+  background: var(--ochre);
+  box-shadow: 0 0 0 1px rgba(200, 150, 67, 0.3);
+}
+
+.coverage-pip-night {
+  background: var(--night);
+  box-shadow: 0 0 0 1px rgba(43, 58, 74, 0.4);
+}
+
+.coverage-pip-missing {
+  background: transparent;
+  border: 1.5px dashed var(--terracotta);
+}
+
+.coverage-surplus {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: var(--terracotta);
+  color: var(--paper);
+  padding: 1px 5px;
+  margin-left: 2px;
+}
+
+@media (max-width: 640px) {
+  .coverage-strip-grid {
+    gap: 4px;
+  }
+  .coverage-day {
+    padding: 6px 4px;
+  }
+  .coverage-row-label {
+    display: none;
+  }
+}
+
 /* ───────────── violation jump highlight ───────────── */
 
 .cell-highlight {

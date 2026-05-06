@@ -5,6 +5,7 @@ import {
   DAYS,
   DAYS_LONG,
   Day,
+  DayOverrides,
   LEAVE_LABELS,
   LeavesMap,
   ManualPayMap,
@@ -23,6 +24,7 @@ import {
 } from "../lib/data";
 import Violations from "./Violations";
 import CellEditor from "./CellEditor";
+import CoverageStrip from "./CoverageStrip";
 
 const NEXT: Record<"none" | ShiftKind, "none" | ShiftKind> = {
   none: "D",
@@ -36,6 +38,7 @@ export default function SchedulePanel({
   manualPay,
   notes,
   leaves,
+  dayOverrides,
   dates,
   violations,
   setSchedule,
@@ -48,6 +51,7 @@ export default function SchedulePanel({
   manualPay: ManualPayMap;
   notes: NotesMap;
   leaves: LeavesMap;
+  dayOverrides: DayOverrides;
   dates: Record<Day, Date>;
   violations: Violation[];
   setSchedule: (next: Schedule) => void;
@@ -143,7 +147,29 @@ export default function SchedulePanel({
         }}
       />
 
-      <div className="flex items-baseline gap-4 mb-3 mt-6">
+      <div className="mt-6">
+        <CoverageStrip
+          staff={staff}
+          schedule={schedule}
+          leaves={leaves}
+          dayOverrides={dayOverrides}
+          dates={dates}
+          onJumpDay={(d) => {
+            const headers = document.querySelectorAll(".sticky-head");
+            const idx = DAYS.indexOf(d);
+            const target = headers[idx + 1];
+            if (target) {
+              (target as HTMLElement).scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+                inline: "center",
+              });
+            }
+          }}
+        />
+      </div>
+
+      <div className="flex items-baseline gap-4 mb-3 mt-8">
         <h2 className="font-display text-3xl md:text-4xl">Schedule</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
       </div>

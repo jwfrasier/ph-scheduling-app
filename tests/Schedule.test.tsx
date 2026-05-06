@@ -27,6 +27,7 @@ function setup(overrides: Partial<Parameters<typeof SchedulePanel>[0]> = {}) {
     manualPay: DEFAULT_MANUAL_PAY as ManualPayMap,
     notes: {} as NotesMap,
     leaves: {} as LeavesMap,
+    dayOverrides: {},
     dates,
     violations: [] as Violation[],
     setSchedule,
