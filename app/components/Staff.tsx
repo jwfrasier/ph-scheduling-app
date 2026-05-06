@@ -5,16 +5,33 @@ import {
   DAYS,
   DAYS_LONG,
   Day,
+  DayShiftAllow,
   LeavesMap,
   ManualPayMap,
   RecurringLeavesMap,
   Schedule,
+  ShiftConstraints,
   Staff,
+  constraintFor,
   pesos,
   shiftCount,
   staffPay,
   uid,
 } from "../lib/data";
+
+const CYCLE: Record<DayShiftAllow, DayShiftAllow> = {
+  off: "D",
+  D: "N",
+  N: "DN",
+  DN: "off",
+};
+
+const ALLOW_LABEL: Record<DayShiftAllow, string> = {
+  off: "Off",
+  D: "Day",
+  N: "Night",
+  DN: "Both",
+};
 import StaffAddModal from "./StaffAddModal";
 
 type PayFilter = "all" | "shift" | "salaried";
@@ -25,7 +42,7 @@ type EditDraft = {
   rate: number;
   manual: boolean;
   manualPay: number;
-  allowedDays: Day[] | null; // null = no constraint (all days OK)
+  shiftConstraints: ShiftConstraints;
 };
 
 export default function StaffPanel({
@@ -61,6 +78,10 @@ export default function StaffPanel({
   const [draft, setDraft] = useState<EditDraft | null>(null);
 
   function startEdit(s: Staff) {
+    // Materialize an explicit per-day constraint for the draft so edit cycles
+    // are unambiguous. We seed from the staff's current effective constraints.
+    const seeded: ShiftConstraints = {};
+    for (const d of DAYS) seeded[d] = constraintFor(s, d);
     setEditingId(s.id);
     setDraft({
       name: s.name,
@@ -68,19 +89,17 @@ export default function StaffPanel({
       rate: s.rate,
       manual: s.manual,
       manualPay: manualPay[s.id] ?? 0,
-      allowedDays: s.allowedDays ? [...s.allowedDays] : null,
+      shiftConstraints: seeded,
     });
   }
-  function toggleAllowedDay(d: Day) {
+  function cycleConstraint(d: Day) {
     if (!draft) return;
-    // null/undefined means "no constraint": when user first toggles, treat as
-    // "all 7 minus the one being turned off"
-    const cur = draft.allowedDays ?? [...DAYS];
-    const has = cur.includes(d);
-    const next = has ? cur.filter((x) => x !== d) : [...cur, d];
-    // If full week is allowed again, clear the constraint
-    const nextOrNull = next.length === 7 ? null : next;
-    setDraft({ ...draft, allowedDays: nextOrNull });
+    const cur = draft.shiftConstraints[d] ?? "DN";
+    const next = CYCLE[cur];
+    setDraft({
+      ...draft,
+      shiftConstraints: { ...draft.shiftConstraints, [d]: next },
+    });
   }
   function cancelEdit() {
     setEditingId(null);
@@ -92,6 +111,8 @@ export default function StaffPanel({
       notify?.("Name can't be empty");
       return;
     }
+    // If every day is "DN", drop the constraint entirely (no constraint).
+    const allDN = DAYS.every((d) => draft.shiftConstraints[d] === "DN");
     setStaff(
       staff.map((s) =>
         s.id === id
@@ -101,7 +122,8 @@ export default function StaffPanel({
               role: draft.role.trim() || "Caregiver",
               rate: draft.rate,
               manual: draft.manual,
-              allowedDays: draft.allowedDays ?? undefined,
+              allowedDays: undefined,
+              shiftConstraints: allDN ? undefined : draft.shiftConstraints,
             }
           : s
       )
@@ -388,52 +410,51 @@ export default function StaffPanel({
                   ))}
               </div>
 
-              {/* Available days — always visible; clickable only in edit mode */}
+              {/* Per-day shift constraints */}
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
                 <div className="flex items-baseline justify-between mb-2">
                   <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft">
-                    Available days
+                    Shift constraints
                   </div>
                   <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft/70">
                     {editing
-                      ? "click to toggle"
-                      : "edit to change · shifts on schedule tab"}
+                      ? "click to cycle · off → day → night → both"
+                      : "edit to change"}
                   </div>
                 </div>
                 <div className="grid grid-cols-7 gap-2">
                   {DAYS.map((d) => {
-                    const source = editing
-                      ? drafted!.allowedDays
-                      : s.allowedDays ?? null;
-                    const allowed = source === null || source.includes(d);
+                    const allow: DayShiftAllow = editing
+                      ? drafted!.shiftConstraints[d] ?? "DN"
+                      : constraintFor(s, d);
+                    const cls = `constraint-pill is-${allow.toLowerCase()}`;
+                    const title = `${DAYS_LONG[d]} · ${ALLOW_LABEL[allow]}`;
                     if (editing) {
                       return (
                         <button
                           key={d}
                           type="button"
-                          onClick={() => toggleAllowedDay(d)}
-                          className={`staff-day-toggle ${
-                            allowed ? "is-on" : "is-off"
-                          }`}
-                          title={`${DAYS_LONG[d]} · ${
-                            allowed ? "allowed" : "off-limits"
-                          }`}
+                          onClick={() => cycleConstraint(d)}
+                          className={cls}
+                          title={title}
                         >
-                          {d}
+                          <span className="constraint-pill-day">{d}</span>
+                          <span className="constraint-pill-state">
+                            {ALLOW_LABEL[allow]}
+                          </span>
                         </button>
                       );
                     }
                     return (
                       <div
                         key={d}
-                        className={`staff-day-toggle ${
-                          allowed ? "is-on" : "is-off"
-                        } is-static`}
-                        title={`${DAYS_LONG[d]} · ${
-                          allowed ? "allowed" : "off-limits"
-                        }`}
+                        className={`${cls} is-static`}
+                        title={title}
                       >
-                        {d}
+                        <span className="constraint-pill-day">{d}</span>
+                        <span className="constraint-pill-state">
+                          {ALLOW_LABEL[allow]}
+                        </span>
                       </div>
                     );
                   })}

@@ -112,8 +112,8 @@ describe("lint", () => {
     expect(tueDay).toBeDefined();
   });
 
-  it("flags constraint violations from allowedDays", () => {
-    // Tessie's constraint: Sat-Wed only. Put her on Friday.
+  it("flags constraint violations from per-day shiftConstraints", () => {
+    // Tessie: Thu/Fri are 'off'. Put her on Friday day shift.
     const week: WeekData = {
       schedule: { ...DEFAULT_SCHEDULE, tessie: { ...DEFAULT_SCHEDULE.tessie, Fri: "D" } },
       dayOverrides: {},
@@ -125,6 +125,23 @@ describe("lint", () => {
     expect(
       issues.find(
         (i) => i.kind === "constraint" && i.staffId === "tessie" && i.day === "Fri"
+      )
+    ).toBeDefined();
+  });
+
+  it("flags day-on-night and night-on-day mismatches", () => {
+    // Trisha: Mon = night-only. Putting her on Monday day shift breaks it.
+    const week: WeekData = {
+      schedule: { trisha: { Mon: "D" } },
+      dayOverrides: {},
+      manualPay: {},
+      notes: {},
+      leaves: {},
+    };
+    const issues = lint(DEFAULT_STAFF, week);
+    expect(
+      issues.find(
+        (i) => i.kind === "constraint" && i.staffId === "trisha" && i.day === "Mon"
       )
     ).toBeDefined();
   });

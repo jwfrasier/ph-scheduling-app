@@ -1185,7 +1185,96 @@ select.shift-select.is-blocked {
   outline-offset: 1px;
 }
 
-/* available-days toggles in edit mode */
+/* per-day shift-constraint pills */
+
+.constraint-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border: 1px solid rgba(28, 26, 23, 0.25);
+  background: transparent;
+  cursor: pointer;
+  transition: all 140ms ease;
+  font-family: var(--font-mono);
+}
+
+.constraint-pill.is-static {
+  cursor: default;
+}
+
+.constraint-pill:not(.is-static):hover {
+  transform: translateY(-1px);
+}
+
+.constraint-pill-day {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(28, 26, 23, 0.6);
+}
+
+.constraint-pill-state {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.constraint-pill.is-off {
+  background: transparent;
+  border-color: rgba(28, 26, 23, 0.2);
+}
+
+.constraint-pill.is-off .constraint-pill-state {
+  color: rgba(28, 26, 23, 0.4);
+  text-decoration: line-through;
+}
+
+.constraint-pill.is-d {
+  background: rgba(200, 150, 67, 0.22);
+  border-color: var(--ochre);
+}
+
+.constraint-pill.is-d .constraint-pill-day,
+.constraint-pill.is-d .constraint-pill-state {
+  color: var(--ink);
+}
+
+.constraint-pill.is-n {
+  background: var(--night);
+  border-color: var(--night);
+}
+
+.constraint-pill.is-n .constraint-pill-day,
+.constraint-pill.is-n .constraint-pill-state {
+  color: var(--paper);
+}
+
+.constraint-pill.is-dn {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 150, 67, 0.22) 0%,
+    rgba(200, 150, 67, 0.22) 50%,
+    var(--night) 50%,
+    var(--night) 100%
+  );
+  border-color: var(--ink);
+}
+
+.constraint-pill.is-dn .constraint-pill-day {
+  color: rgba(28, 26, 23, 0.7);
+}
+
+.constraint-pill.is-dn .constraint-pill-state {
+  color: var(--paper);
+  background: rgba(28, 26, 23, 0.5);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* legacy day-toggle (kept for compatibility, falls back nicely) */
 
 .staff-day-toggle {
   font-family: var(--font-mono);

@@ -18,15 +18,38 @@ export const REQUIRED_NIGHT = 2;
 export const MAX_SHIFTS = 5;
 export const DEFAULT_RATE = 500;
 
+export type DayShiftAllow = "D" | "N" | "DN" | "off";
+export type ShiftConstraints = Partial<Record<Day, DayShiftAllow>>;
+
 export type Staff = {
   id: string;
   name: string;
   role: string;
   rate: number;
   manual: boolean;
-  /** Optional hard constraints — used by lint(). */
+  /** Per-day shift constraint. Missing day = unrestricted (DN). */
+  shiftConstraints?: ShiftConstraints;
+  /** Legacy boolean-per-day. Still honored if shiftConstraints is absent. */
   allowedDays?: Day[];
 };
+
+/** Resolve the effective constraint for a (staff, day) pair. */
+export function constraintFor(s: Staff, d: Day): DayShiftAllow {
+  if (s.shiftConstraints && d in s.shiftConstraints) {
+    return s.shiftConstraints[d]!;
+  }
+  if (s.allowedDays) {
+    return s.allowedDays.includes(d) ? "DN" : "off";
+  }
+  return "DN";
+}
+
+export function shiftAllowed(s: Staff, d: Day, k: ShiftKind): boolean {
+  const c = constraintFor(s, d);
+  if (c === "off") return false;
+  if (c === "DN") return true;
+  return c === k;
+}
 
 export type Schedule = Record<string, Partial<Record<Day, ShiftKind>>>;
 
@@ -79,15 +102,50 @@ export const SALARIED_LABEL = "Bi-monthly";
 export const PER_SHIFT_LABEL = "Weekly";
 
 export const DEFAULT_STAFF: Staff[] = [
-  { id: "tessie",  name: "Tessie",   role: "Senior caregiver · Sat–Wed", rate: 500, manual: true,  allowedDays: ["Sat", "Sun", "Mon", "Tue", "Wed"] },
-  { id: "eula",    name: "Eula",     role: "Senior caregiver · Mon–Fri", rate: 500, manual: true,  allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
-  { id: "teng",    name: "Teng",     role: "Day · weekend-leaning",      rate: 500, manual: false },
-  { id: "jane",    name: "Jane",     role: "Mixed · 3 day, 2 night",     rate: 500, manual: false },
-  { id: "trisha",  name: "Trisha",   role: "Night · Mon–Fri",            rate: 500, manual: false, allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
-  { id: "jessica", name: "Jessica",  role: "Night · weekends included",  rate: 500, manual: false },
-  { id: "alondra", name: "Alondra",  role: "Day · Mon–Fri",              rate: 500, manual: false, allowedDays: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
-  { id: "maryann", name: "Mary Ann", role: "Night · Sunday only",        rate: 500, manual: false, allowedDays: ["Sun"] },
-  { id: "j",       name: "J",        role: "Flexible night cover",       rate: 500, manual: false },
+  {
+    id: "tessie", name: "Tessie", role: "Senior caregiver · Sat–Wed",
+    rate: 500, manual: true,
+    shiftConstraints: { Sat: "D", Sun: "D", Mon: "D", Tue: "D", Wed: "D", Thu: "off", Fri: "off" },
+  },
+  {
+    id: "eula", name: "Eula", role: "Senior caregiver · Mon–Fri",
+    rate: 500, manual: true,
+    shiftConstraints: { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D", Sun: "off", Sat: "off" },
+  },
+  {
+    id: "teng", name: "Teng", role: "Day · weekend-leaning",
+    rate: 500, manual: false,
+    shiftConstraints: { Sun: "D", Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D", Sat: "D" },
+  },
+  {
+    id: "jane", name: "Jane", role: "Mixed · 3 day, 2 night",
+    rate: 500, manual: false,
+    // Any day, either shift kind
+  },
+  {
+    id: "trisha", name: "Trisha", role: "Night · Mon–Fri",
+    rate: 500, manual: false,
+    shiftConstraints: { Mon: "N", Tue: "N", Wed: "N", Thu: "N", Fri: "N", Sun: "off", Sat: "off" },
+  },
+  {
+    id: "jessica", name: "Jessica", role: "Night · weekends included",
+    rate: 500, manual: false,
+    shiftConstraints: { Sun: "N", Mon: "N", Tue: "N", Wed: "N", Thu: "N", Fri: "N", Sat: "N" },
+  },
+  {
+    id: "alondra", name: "Alondra", role: "Day · Mon–Fri",
+    rate: 500, manual: false,
+    shiftConstraints: { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D", Sun: "off", Sat: "off" },
+  },
+  {
+    id: "maryann", name: "Mary Ann", role: "Night · Sunday only",
+    rate: 500, manual: false,
+    shiftConstraints: { Sun: "N", Mon: "off", Tue: "off", Wed: "off", Thu: "off", Fri: "off", Sat: "off" },
+  },
+  {
+    id: "j", name: "J", role: "Flexible night cover",
+    rate: 500, manual: false,
+  },
 ];
 
 export const DEFAULT_SCHEDULE: Schedule = {
@@ -388,12 +446,19 @@ export function lint(
     for (const d of DAYS) {
       const k = row[d];
       if (k) count++;
-      if (k && s.allowedDays && !s.allowedDays.includes(d)) {
+      if (k && !shiftAllowed(s, d, k)) {
+        const c = constraintFor(s, d);
+        const detail =
+          c === "off"
+            ? `${d} is off-limits`
+            : c === "D"
+            ? `only day shifts on ${d}`
+            : `only night shifts on ${d}`;
         issues.push({
           kind: "constraint",
           staffId: s.id,
           day: d,
-          message: `${s.name} is rostered ${d} but constraint says ${s.allowedDays.join("/")} only.`,
+          message: `${s.name} is rostered ${k === "D" ? "day" : "night"} on ${d}, but ${detail}.`,
         });
       }
       if (k && leaves[s.id]?.[d]) {

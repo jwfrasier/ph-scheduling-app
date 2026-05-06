@@ -143,31 +143,29 @@ describe("<StaffPanel />", () => {
     expect(shiftSelects).toHaveLength(0);
   });
 
-  it("shows the available-days constraint as static pills outside edit mode", () => {
+  it("shows constraint pills with day/night/off labels outside edit mode", () => {
     setup();
     const card = getCard("Tessie");
-    const dayPills = within(card)
-      .getAllByText(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/);
-    // Available-days pill row
-    expect(dayPills.length).toBeGreaterThanOrEqual(7);
+    // Tessie's defaults: Sat/Sun/Mon/Tue/Wed = Day, Thu/Fri = Off
+    expect(within(card).getAllByText(/^Day$/).length).toBeGreaterThanOrEqual(5);
+    expect(within(card).getAllByText(/^Off$/).length).toBeGreaterThanOrEqual(2);
   });
 
-  it("toggling an available-day in edit mode commits allowedDays on save", () => {
+  it("cycling a constraint pill in edit mode commits shiftConstraints on save", () => {
     const { setStaff } = setup();
     const card = getCard("Tessie");
     startEditing(card);
-    // Tessie's allowedDays = ["Sat","Sun","Mon","Tue","Wed"]
-    const dayToggles = within(card).getAllByRole("button").filter((b) =>
-      b.className.includes("staff-day-toggle")
-    );
-    expect(dayToggles).toHaveLength(7);
-    // Toggle off Mon (currently allowed)
-    fireEvent.click(dayToggles[1]);
+    const pills = within(card)
+      .getAllByRole("button")
+      .filter((b) => b.className.includes("constraint-pill"));
+    expect(pills).toHaveLength(7);
+    // Mon is currently 'D'; one cycle → 'N'
+    fireEvent.click(pills[1]);
     fireEvent.click(within(card).getByRole("button", { name: /^save$/i }));
     const next = setStaff.mock.calls[0][0] as Staff[];
     const t = next.find((s) => s.id === "tessie")!;
-    expect(t.allowedDays).not.toContain("Mon");
-    expect(t.allowedDays).toContain("Sat");
+    expect(t.shiftConstraints?.Mon).toBe("N");
+    expect(t.shiftConstraints?.Sat).toBe("D"); // unchanged
   });
 
   it("salaried badge shows for manual staff", () => {
