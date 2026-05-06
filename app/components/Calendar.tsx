@@ -164,14 +164,8 @@ export default function CalendarPanel({
       />
 
       <div className="flex items-baseline gap-4 mb-6 mt-6">
-        <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
-          §II
-        </span>
         <h2 className="font-display text-3xl md:text-4xl">Calendar</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
-        <span className="font-mono text-[10px] tracking-widest uppercase text-ink-soft hidden md:inline">
-          {touch ? "tap to move" : "drag staff between zones"}
-        </span>
       </div>
 
       {/* Day strip */}
@@ -333,12 +327,8 @@ export default function CalendarPanel({
         />
       </div>
 
-      <p className="mt-6 text-[13px] leading-relaxed text-ink-soft max-w-prose">
-        {touch
-          ? "Tap a caregiver chip to move them. The "
-          : "Drag chips between zones. The "}
-        <span className="font-mono">required</span> headcount can be overridden per
-        day; ✶ marks any day with custom times or counts.
+      <p className="mt-6 font-mono text-[10px] tracking-widest uppercase text-ink-soft">
+        {touch ? "tap chip · long-press to edit" : "drag chip · long-press to edit"}
       </p>
 
       {editing &&

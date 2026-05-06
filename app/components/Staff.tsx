@@ -87,13 +87,10 @@ export default function StaffPanel({
   return (
     <section className="pt-10 rise">
       <div className="flex items-baseline gap-4 mb-6">
-        <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
-          §III
-        </span>
         <h2 className="font-display text-3xl md:text-4xl">Staff</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
         <button onClick={add} className="action-btn" aria-label="Add caregiver">
-          + add caregiver
+          + add
         </button>
       </div>
 
@@ -241,7 +238,7 @@ export default function StaffPanel({
                   })}
                 </div>
                 <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-2">
-                  Applied automatically when a new week is opened
+                  Applied to new weeks
                 </div>
               </div>
             </article>

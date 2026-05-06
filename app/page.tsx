@@ -382,73 +382,50 @@ export default function Home() {
   return (
     <main className="min-h-screen text-ink">
       {/* MASTHEAD */}
-      <header className="screen-only px-5 sm:px-5 sm:px-6 md:px-12 lg:px-20 pt-6 sm:pt-10 md:pt-14 pb-6 sm:pb-10">
+      <header className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 pt-6 sm:pt-10 md:pt-12 pb-6 sm:pb-8">
         <div className="grid grid-cols-12 gap-4 md:gap-6 items-end">
           <div className="col-span-12 md:col-span-7 rise">
-            <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono tracking-[0.2em] uppercase text-ink-soft">
-              <span>Vol. 01</span>
-              <span className="w-8 deco-rule" />
-              <span>The Weekly Ledger</span>
-              <span className="w-8 deco-rule" />
-              <span>24/7 Care</span>
-            </div>
-            <div className="sm:hidden text-[10px] font-mono tracking-[0.2em] uppercase text-ink-soft">
-              The Weekly Ledger · 24/7
-            </div>
-            <h1 className="font-display text-[clamp(2.6rem,8vw,7rem)] leading-[0.86] mt-3 sm:mt-4">
+            <h1 className="font-display text-[clamp(2.4rem,7vw,5.6rem)] leading-[0.9]">
               Roster
               <span className="italic text-terracotta"> &amp; </span>
               Payroll
             </h1>
-            <p className="mt-4 sm:mt-5 max-w-xl text-[14px] sm:text-[15px] leading-relaxed text-ink-soft">
-              A weekly staffing record for a children&rsquo;s home running
-              continuous care. Each week archived, leaves tracked, and rules
-              checked. Print, export, share — pick your channel.
-            </p>
-            <div className="mt-4 font-mono text-[11px] tracking-[0.2em] uppercase text-ink-soft">
+            <div className="mt-3 font-mono text-[11px] tracking-[0.2em] uppercase text-ink-soft">
               <span className="text-ink">Week of {weekLabel}</span>
               {!isCurrentWeek && (
-                <span className="text-terracotta ml-2">· not this week</span>
+                <span className="text-terracotta ml-2">· archived</span>
               )}
             </div>
           </div>
 
           <div className="col-span-12 md:col-span-5 rise delay-2">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[12px] font-mono tracking-wider uppercase text-ink-soft">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[12px] font-mono tracking-wider uppercase text-ink-soft">
               <div className="flex justify-between border-b border-ink/20 py-2">
-                <span>Day shift</span>
+                <span>Day</span>
                 <span className="text-ink">
                   {REQUIRED_DAY} · {state.shiftTimes.D.hours}h
                 </span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2">
-                <span>Night shift</span>
+                <span>Night</span>
                 <span className="text-ink">
                   {REQUIRED_NIGHT} · {state.shiftTimes.N.hours}h
                 </span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2">
-                <span>Caregivers</span>
+                <span>Staff</span>
                 <span className="text-ink">{state.staff.length}</span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2">
                 <span>Issues</span>
                 <span className={violations.length > 0 ? "text-terracotta" : "text-sage"}>
-                  {violations.length === 0 ? "all clear" : violations.length}
+                  {violations.length === 0 ? "—" : violations.length}
                 </span>
               </div>
               <div className="flex justify-between border-b border-ink/20 py-2 col-span-2">
-                <span>Archived weeks · sync</span>
-                <span className="text-ink">
-                  {archivedCount} · <SyncDot status={sync} />
-                </span>
+                <span>Sync</span>
+                <SyncDot status={sync} />
               </div>
-            </div>
-            <div className="mt-6 flex items-center gap-3">
-              <span className="stamp">Edition · {weekLabel}</span>
-              <span className="text-[11px] font-mono uppercase tracking-widest text-ink-soft">
-                Version 4.0
-              </span>
             </div>
           </div>
         </div>
@@ -669,19 +646,8 @@ export default function Home() {
         )}
       </div>
 
-      <footer className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 py-10 border-t border-ink/30 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <div className="font-display text-2xl leading-none">
-            Children&rsquo;s Home, Operations
-          </div>
-          <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft mt-2">
-            Minimum operational staffing · scalable
-          </div>
-        </div>
-        <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft">
-          Set in Fraunces &amp; Bricolage · {archivedCount} week
-          {archivedCount === 1 ? "" : "s"} on file
-        </div>
+      <footer className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 py-6 border-t border-ink/20 font-mono text-[10px] tracking-widest uppercase text-ink-soft text-right">
+        {archivedCount} week{archivedCount === 1 ? "" : "s"} on file
       </footer>
 
       {toast && <div className="toast">{toast}</div>}

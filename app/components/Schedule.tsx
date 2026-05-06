@@ -144,14 +144,8 @@ export default function SchedulePanel({
       />
 
       <div className="flex items-baseline gap-4 mb-3 mt-6">
-        <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
-          §I
-        </span>
-        <h2 className="font-display text-3xl md:text-4xl">The Roster</h2>
+        <h2 className="font-display text-3xl md:text-4xl">Schedule</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
-        <span className="font-mono text-[10px] tracking-widest uppercase text-ink-soft hidden md:inline">
-          tap · cycle · long-press to edit
-        </span>
       </div>
 
       <div className="overflow-x-auto -mx-2 px-2 schedule-scroll">
@@ -335,7 +329,7 @@ export default function SchedulePanel({
       </div>
 
       <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-ink-soft">
-        click cycles · long-press · right-click · or shift-click to add notes &amp; leave
+        click cycles · long-press to edit
       </p>
 
       {editing &&

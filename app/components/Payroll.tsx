@@ -36,18 +36,9 @@ export default function PayrollPanel({
     <section className="pt-10 rise grid grid-cols-12 gap-x-8 gap-y-10">
       <div className="col-span-12 md:col-span-7">
         <div className="flex items-baseline gap-4 mb-5">
-          <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
-            §IV
-          </span>
           <h2 className="font-display text-3xl md:text-4xl">Payroll</h2>
           <span className="flex-1 h-px bg-ink/20 ml-4" />
         </div>
-        <p className="text-[15px] leading-relaxed text-ink-soft max-w-prose">
-          Automatic line items multiply each caregiver&rsquo;s shift count by
-          their personal rate. Manual entries override the calculation for
-          staff with bespoke arrangements. Amounts apply to the week currently
-          on view.
-        </p>
 
         <div className="mt-8">
           <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft mb-3">
@@ -146,11 +137,6 @@ export default function PayrollPanel({
               </dd>
             </div>
           </dl>
-          <p className="mt-6 text-[13px] leading-relaxed text-ink-soft">
-            Use the toolbar to <span className="font-mono">⎙ payroll</span> or
-            export <span className="font-mono">⇣ payroll</span> CSV for the
-            week shown above.
-          </p>
         </div>
       </aside>
     </section>
