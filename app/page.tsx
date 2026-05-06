@@ -310,7 +310,7 @@ export default function Home() {
       week.leaves,
       weekLabel
     );
-    downloadCsv(`schedule-${state.currentWeekKey}.csv`, csv);
+    downloadCsv(`mcch-schedule-${state.currentWeekKey}.csv`, csv);
   }
   function exportPayroll() {
     const csv = buildPayrollCsv(
@@ -320,10 +320,10 @@ export default function Home() {
       week.leaves,
       weekLabel
     );
-    downloadCsv(`payroll-${state.currentWeekKey}.csv`, csv);
+    downloadCsv(`mcch-payroll-${state.currentWeekKey}.csv`, csv);
   }
   function exportJson() {
-    downloadJson(`roster-backup-${new Date().toISOString().slice(0, 10)}.json`, state);
+    downloadJson(`mcch-backup-${new Date().toISOString().slice(0, 10)}.json`, state);
     flashToast("Backup downloaded");
   }
   function importJson(file: File) {
@@ -385,10 +385,13 @@ export default function Home() {
       <header className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 pt-6 sm:pt-10 md:pt-12 pb-6 sm:pb-8">
         <div className="grid grid-cols-12 gap-4 md:gap-6 items-end">
           <div className="col-span-12 md:col-span-7 rise">
+            <div className="font-mono text-[12px] tracking-[0.25em] uppercase text-terracotta mb-2">
+              MCCH · Manaoag Christian Children&rsquo;s Home
+            </div>
             <h1 className="font-display text-[clamp(2.4rem,7vw,5.6rem)] leading-[0.9]">
-              Roster
-              <span className="italic text-terracotta"> &amp; </span>
-              Payroll
+              Weekly
+              <span className="italic text-terracotta"> </span>
+              Schedule
             </h1>
             <div className="mt-3 font-mono text-[13px] tracking-[0.2em] uppercase text-ink-soft">
               <span className="text-ink">Week of {weekLabel}</span>

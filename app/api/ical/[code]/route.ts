@@ -27,7 +27,7 @@ export async function GET(
     headers: {
       "content-type": "text/calendar; charset=utf-8",
       "cache-control": "public, max-age=300",
-      "content-disposition": `inline; filename="roster-${payload.weekKey}.ics"`,
+      "content-disposition": `inline; filename="mcch-schedule-${payload.weekKey}.ics"`,
     },
   });
 }

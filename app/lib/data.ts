@@ -67,9 +67,12 @@ export type WeekData = {
 export type RecurringLeavesMap = Record<string, Partial<Record<Day, LeaveType>>>;
 
 export const DEFAULT_SHIFT_TIMES: ShiftTimes = {
-  D: { start: "06:00", end: "14:00", hours: 8 },
-  N: { start: "14:00", end: "06:00", hours: 16 },
+  D: { start: "08:00", end: "17:00", hours: 9 },
+  N: { start: "17:00", end: "08:00", hours: 15 },
 };
+
+export const ORG_SHORT = "MCCH";
+export const ORG_FULL = "Manaoag Christian Children's Home";
 
 export const DEFAULT_STAFF: Staff[] = [
   { id: "tessie",  name: "Tessie",   role: "Senior caregiver · Sat–Wed", rate: 500, manual: true,  allowedDays: ["Sat", "Sun", "Mon", "Tue", "Wed"] },
@@ -540,6 +543,17 @@ export function fmtOrdinalDate(d: Date): string {
   return `${d.toLocaleDateString("en-US", { month: "long" })} ${day}${suffix}`;
 }
 
+/** "08:00" → "8am", "17:30" → "5:30pm". Pass any HH:MM string. */
+export function fmt12Hour(hhmm: string): string {
+  if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return hhmm;
+  const [hStr, mStr] = hhmm.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  const period = h >= 12 ? "pm" : "am";
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, "0")}${period}`;
+}
+
 export function fmtTimestamp(d: Date = new Date()): string {
   return (
     d.toLocaleDateString("en-US", {
@@ -710,10 +724,10 @@ export function buildIcs(opts: {
 
   lines.push("BEGIN:VCALENDAR");
   lines.push("VERSION:2.0");
-  lines.push(`PRODID:-//childrens-home-roster//EN`);
+  lines.push(`PRODID:-//mcch-weekly-schedule//EN`);
   lines.push("CALSCALE:GREGORIAN");
   lines.push("METHOD:PUBLISH");
-  lines.push(`X-WR-CALNAME:Children's Home Roster`);
+  lines.push(`X-WR-CALNAME:${ORG_SHORT} Weekly Schedule`);
 
   for (const s of staff) {
     if (filterStaffId && s.id !== filterStaffId) continue;

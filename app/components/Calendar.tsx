@@ -20,6 +20,7 @@ import {
   dayCount,
   effectiveRequired,
   effectiveTimes,
+  fmt12Hour,
   fmtDayDate,
   fmtOrdinalDate,
   isSameDay,
@@ -257,8 +258,9 @@ export default function CalendarPanel({
             </span>
           </div>
           <div className="font-mono text-[14px] tracking-widest uppercase text-ink-soft mt-2">
-            day &nbsp;{eff.D.start}–{eff.D.end} · {eff.D.hours}h &nbsp;·&nbsp;
-            night &nbsp;{eff.N.start}–{eff.N.end} · {eff.N.hours}h
+            day &nbsp;{fmt12Hour(eff.D.start)}–{fmt12Hour(eff.D.end)} ·{" "}
+            {eff.D.hours}h &nbsp;·&nbsp; night &nbsp;
+            {fmt12Hour(eff.N.start)}–{fmt12Hour(eff.N.end)} · {eff.N.hours}h
             {dayHasOverride && (
               <span className="text-sage ml-2">· custom for this day</span>
             )}

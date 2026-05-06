@@ -1,11 +1,14 @@
 import {
   DAYS,
   DAYS_LONG,
+  ORG_FULL,
+  ORG_SHORT,
   REQUIRED_DAY,
   REQUIRED_NIGHT,
   decodeShare,
   effectiveRequired,
   effectiveTimes,
+  fmt12Hour,
   fmtDayDate,
   fmtOrdinalDate,
   weekDatesFromKey,
@@ -48,15 +51,19 @@ export default async function SharePage({
   return (
     <main className="min-h-screen px-6 md:px-12 lg:px-20 py-10 md:py-14 text-ink">
       <header className="pb-8 border-b border-ink/30">
-        <div className="font-mono text-[13px] tracking-[0.2em] uppercase text-terracotta">
-          Read-only · shared roster
+        <div className="font-mono text-[13px] tracking-[0.25em] uppercase text-terracotta">
+          {ORG_SHORT} · {ORG_FULL}
+        </div>
+        <div className="font-mono text-[12px] tracking-[0.2em] uppercase text-ink-soft mt-1">
+          Read-only weekly schedule
         </div>
         <h1 className="font-display text-[clamp(2.6rem,7vw,5.4rem)] leading-[0.9] mt-3">
           Week of {weekLabel}
         </h1>
         <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-3">
-          Day {shiftTimes.D.start}–{shiftTimes.D.end} · Night {shiftTimes.N.start}–
-          {shiftTimes.N.end} · {staff.length} caregivers
+          Day {fmt12Hour(shiftTimes.D.start)}–{fmt12Hour(shiftTimes.D.end)} ·
+          Night {fmt12Hour(shiftTimes.N.start)}–{fmt12Hour(shiftTimes.N.end)} ·{" "}
+          {staff.length} caregivers
         </div>
       </header>
 
@@ -83,7 +90,7 @@ export default async function SharePage({
 
               <Section
                 label="Day"
-                time={`${eff.D.start}–${eff.D.end}`}
+                time={`${fmt12Hour(eff.D.start)}–${fmt12Hour(eff.D.end)}`}
                 count={onDay.length}
                 target={req.D}
                 rows={onDay.map((s) => ({
@@ -93,7 +100,7 @@ export default async function SharePage({
               />
               <Section
                 label="Night"
-                time={`${eff.N.start}–${eff.N.end}`}
+                time={`${fmt12Hour(eff.N.start)}–${fmt12Hour(eff.N.end)}`}
                 count={onNight.length}
                 target={req.N}
                 rows={onNight.map((s) => ({

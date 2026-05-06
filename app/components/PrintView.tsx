@@ -9,12 +9,15 @@ import {
   LeavesMap,
   ManualPayMap,
   NotesMap,
+  ORG_FULL,
+  ORG_SHORT,
   Schedule,
   ShiftTimes,
   Staff,
   dayCount,
   effectiveRequired,
   effectiveTimes,
+  fmt12Hour,
   fmtDayDate,
   fmtTimestamp,
   pesos,
@@ -130,7 +133,7 @@ function PrintCalendar({
     <>
       <header className="print-head">
         <div>
-          <div className="print-eyebrow">Children&rsquo;s Home · Operations</div>
+          <div className="print-eyebrow">{ORG_SHORT} · {ORG_FULL}</div>
           <h1 className="print-title">
             Weekly <em>Calendar</em>
           </h1>
@@ -140,8 +143,9 @@ function PrintCalendar({
             <strong>{weekLabel}</strong>
           </div>
           <div>
-            Day {shiftTimes.D.start}–{shiftTimes.D.end} · {shiftTimes.D.hours}h
-            &nbsp;·&nbsp; Night {shiftTimes.N.start}–{shiftTimes.N.end} ·{" "}
+            Day {fmt12Hour(shiftTimes.D.start)}–{fmt12Hour(shiftTimes.D.end)} ·{" "}
+            {shiftTimes.D.hours}h &nbsp;·&nbsp; Night{" "}
+            {fmt12Hour(shiftTimes.N.start)}–{fmt12Hour(shiftTimes.N.end)} ·{" "}
             {shiftTimes.N.hours}h
           </div>
           <div>{staff.length} caregivers on roster</div>
@@ -175,7 +179,7 @@ function PrintCalendar({
                 <div className="print-shift-head">
                   <span className="print-shift-label">Day</span>
                   <span className="print-shift-time">
-                    {eff.D.start}–{eff.D.end}
+                    {fmt12Hour(eff.D.start)}–{fmt12Hour(eff.D.end)}
                   </span>
                   <span
                     className={`print-shift-count ${dayOk ? "" : "print-flag"}`}
@@ -202,7 +206,7 @@ function PrintCalendar({
                 <div className="print-shift-head">
                   <span className="print-shift-label">Night</span>
                   <span className="print-shift-time">
-                    {eff.N.start}–{eff.N.end}
+                    {fmt12Hour(eff.N.start)}–{fmt12Hour(eff.N.end)}
                   </span>
                   <span
                     className={`print-shift-count ${nightOk ? "" : "print-flag"}`}
@@ -293,7 +297,7 @@ function PrintPayroll({
     <>
       <header className="print-head">
         <div>
-          <div className="print-eyebrow">Children&rsquo;s Home · Operations</div>
+          <div className="print-eyebrow">{ORG_SHORT} · {ORG_FULL}</div>
           <h1 className="print-title">
             Weekly <em>Payroll</em>
           </h1>

@@ -19,9 +19,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ledger — Children's Home Roster",
+  title: "MCCH — Weekly Schedule",
   description:
-    "Weekly staff scheduling and payroll ledger for a 24/7 children's home.",
+    "Manaoag Christian Children's Home — weekly staff scheduling and payroll.",
 };
 
 export default function RootLayout({
