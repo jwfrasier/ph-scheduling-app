@@ -406,8 +406,17 @@ export default function Home() {
       <header className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 pt-6 sm:pt-10 md:pt-12 pb-6 sm:pb-8">
         <div className="grid grid-cols-12 gap-4 md:gap-6 items-end">
           <div className="col-span-12 md:col-span-7 rise">
-            <div className="font-mono text-[12px] tracking-[0.25em] uppercase text-terracotta mb-2">
-              MCCH · Manaoag Christian Children&rsquo;s Home
+            <div className="flex items-center gap-3 mb-2">
+              <img
+                src="/mcch-logo.svg"
+                alt="MCCH logo"
+                className="mcch-logo"
+                width={48}
+                height={48}
+              />
+              <div className="font-mono text-[12px] tracking-[0.25em] uppercase text-terracotta">
+                MCCH · Manaoag Christian Children&rsquo;s Home
+              </div>
             </div>
             <h1 className="font-display text-[clamp(2.4rem,7vw,5.6rem)] leading-[0.9]">
               Weekly
