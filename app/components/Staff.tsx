@@ -1,9 +1,13 @@
 "use client";
 
 import {
+  DAYS,
   DEFAULT_RATE,
+  LEAVE_LABELS,
+  LeaveType,
   LeavesMap,
   ManualPayMap,
+  RecurringLeavesMap,
   Schedule,
   Staff,
   pesos,
@@ -17,19 +21,23 @@ export default function StaffPanel({
   schedule,
   manualPay,
   leaves,
+  recurringLeaves,
   setStaff,
   setSchedule,
   setManualPay,
   setLeaves,
+  setRecurringLeaves,
 }: {
   staff: Staff[];
   schedule: Schedule;
   manualPay: ManualPayMap;
   leaves: LeavesMap;
+  recurringLeaves: RecurringLeavesMap;
   setStaff: (next: Staff[]) => void;
   setSchedule: (next: Schedule) => void;
   setManualPay: (next: ManualPayMap) => void;
   setLeaves: (next: LeavesMap) => void;
+  setRecurringLeaves: (next: RecurringLeavesMap) => void;
 }) {
   function update<K extends keyof Staff>(id: string, key: K, value: Staff[K]) {
     setStaff(staff.map((s) => (s.id === id ? { ...s, [key]: value } : s)));
@@ -49,6 +57,18 @@ export default function StaffPanel({
     const nextLeaves = { ...leaves };
     delete nextLeaves[id];
     setLeaves(nextLeaves);
+    const nextRec = { ...recurringLeaves };
+    delete nextRec[id];
+    setRecurringLeaves(nextRec);
+  }
+
+  function setRec(id: string, day: typeof DAYS[number], type: LeaveType | null) {
+    const row = { ...(recurringLeaves[id] ?? {}) };
+    if (type === null) delete row[day];
+    else row[day] = type;
+    const next = { ...recurringLeaves, [id]: row };
+    if (Object.keys(row).length === 0) delete next[id];
+    setRecurringLeaves(next);
   }
   function add() {
     const id = uid();
@@ -176,6 +196,53 @@ export default function StaffPanel({
                     auto · {c} × {pesos(s.rate)}
                   </span>
                 )}
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-dashed border-ink/20">
+                <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mb-2">
+                  Recurring leave
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {DAYS.map((d) => {
+                    const t = recurringLeaves[s.id]?.[d];
+                    return (
+                      <label
+                        key={d}
+                        className="flex flex-col items-stretch gap-1 text-center"
+                        title={`${d} · recurring leave`}
+                      >
+                        <span className="font-mono text-[9px] tracking-widest uppercase text-ink-soft">
+                          {d}
+                        </span>
+                        <select
+                          value={t ?? ""}
+                          onChange={(e) =>
+                            setRec(
+                              s.id,
+                              d,
+                              e.target.value === ""
+                                ? null
+                                : (e.target.value as LeaveType)
+                            )
+                          }
+                          className={`select-input text-[10px] ${
+                            t ? "text-sage" : "text-ink-soft"
+                          }`}
+                        >
+                          <option value="">—</option>
+                          {(Object.keys(LEAVE_LABELS) as LeaveType[]).map((k) => (
+                            <option key={k} value={k}>
+                              {LEAVE_LABELS[k][0]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })}
+                </div>
+                <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-2">
+                  Applied automatically when a new week is opened
+                </div>
               </div>
             </article>
           );

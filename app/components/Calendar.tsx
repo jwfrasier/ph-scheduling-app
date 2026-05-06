@@ -156,7 +156,12 @@ export default function CalendarPanel({
 
   return (
     <section className="pt-10 rise">
-      <Violations issues={violations} />
+      <Violations
+        issues={violations}
+        onJumpTo={(v) => {
+          if ("day" in v && v.day) setDay(v.day);
+        }}
+      />
 
       <div className="flex items-baseline gap-4 mb-6 mt-6">
         <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
@@ -318,6 +323,8 @@ export default function CalendarPanel({
         <OffZone
           assigned={offDuty}
           schedule={schedule}
+          notes={notes}
+          day={day}
           dragOver={dragOver === "off"}
           touch={touch}
           setDragOver={setDragOver}
@@ -631,6 +638,8 @@ function LeaveZone({
 function OffZone({
   assigned,
   schedule,
+  notes,
+  day,
   dragOver,
   touch,
   setDragOver,
@@ -639,6 +648,8 @@ function OffZone({
 }: {
   assigned: Staff[];
   schedule: Schedule;
+  notes: NotesMap;
+  day: Day;
   dragOver: boolean;
   touch: boolean;
   setDragOver: (z: Zone | null) => void;
@@ -690,7 +701,7 @@ function OffZone({
             key={s.id}
             staff={s}
             schedule={schedule}
-            note=""
+            note={notes[s.id]?.[day] ?? ""}
             touch={touch}
             onEdit={() => onEdit(s.id)}
           />

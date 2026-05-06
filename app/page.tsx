@@ -7,11 +7,13 @@ import {
   LeavesMap,
   ManualPayMap,
   NotesMap,
+  RecurringLeavesMap,
   Schedule,
   STORAGE_KEY,
   Staff,
   ShiftTimes,
   WeekData,
+  applyRecurring,
   buildPayrollCsv,
   buildScheduleCsv,
   dayCount,
@@ -19,6 +21,7 @@ import {
   downloadJson,
   encodeShare,
   fmtOrdinalDate,
+  fmtTimestamp,
   getOrSeedWeek,
   lint,
   loadState,
@@ -94,6 +97,71 @@ export default function Home() {
     tryRemoteSave(state).then((s) => setSync(s));
   }, [state, hydrated]);
 
+  // Keyboard shortcuts
+  const [helpOpen, setHelpOpen] = useState(false);
+  useEffect(() => {
+    function isTyping(t: EventTarget | null): boolean {
+      const el = t as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName;
+      return (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        el.isContentEditable
+      );
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      switch (e.key) {
+        case "ArrowLeft":
+          jumpWeek(-1);
+          break;
+        case "ArrowRight":
+          jumpWeek(1);
+          break;
+        case "t":
+        case "T":
+          gotoThisWeek();
+          break;
+        case "1":
+          setTab("schedule");
+          break;
+        case "2":
+          setTab("calendar");
+          break;
+        case "3":
+          setTab("staff");
+          break;
+        case "4":
+          setTab("payroll");
+          break;
+        case "c":
+        case "C":
+          handlePrint("calendar");
+          break;
+        case "p":
+        case "P":
+          handlePrint("payroll");
+          break;
+        case "s":
+        case "S":
+          shareLink();
+          break;
+        case "?":
+          setHelpOpen((o) => !o);
+          break;
+        case "Escape":
+          setHelpOpen(false);
+          break;
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   /* ---------- week handling ---------- */
 
   const dates = useMemo(
@@ -117,7 +185,7 @@ export default function Home() {
         ...s,
         weeks: {
           ...s.weeks,
-          [s.currentWeekKey]: { ...current, ...patch },
+          [s.currentWeekKey]: { ...current, ...patch, modifiedAt: Date.now() },
         },
       };
     });
@@ -126,7 +194,7 @@ export default function Home() {
   function jumpWeek(deltaWeeks: number) {
     setState((s) => {
       const next = shiftWeekKey(s.currentWeekKey, deltaWeeks);
-      const seeded = getOrSeedWeek(s.weeks, next);
+      const seeded = applyRecurring(getOrSeedWeek(s.weeks, next), s.recurringLeaves);
       return {
         ...s,
         currentWeekKey: next,
@@ -140,8 +208,62 @@ export default function Home() {
     setState((s) => ({
       ...s,
       currentWeekKey: k,
-      weeks: { ...s.weeks, [k]: getOrSeedWeek(s.weeks, k) },
+      weeks: {
+        ...s.weeks,
+        [k]: applyRecurring(getOrSeedWeek(s.weeks, k), s.recurringLeaves),
+      },
     }));
+  }
+
+  /* ---------- bulk operations ---------- */
+
+  function bulkCopyToNext(n: number) {
+    if (n <= 0) return;
+    if (
+      !confirm(
+        `Copy this week's pattern to the next ${n} week${n === 1 ? "" : "s"}? Existing entries on those weeks will be overwritten.`
+      )
+    )
+      return;
+    setState((s) => {
+      const src = getOrSeedWeek(s.weeks, s.currentWeekKey);
+      const next = { ...s.weeks };
+      let key = s.currentWeekKey;
+      for (let i = 0; i < n; i++) {
+        key = shiftWeekKey(key, 1);
+        next[key] = {
+          schedule: { ...src.schedule },
+          dayOverrides: { ...src.dayOverrides },
+          manualPay: { ...src.manualPay },
+          notes: {},
+          leaves: {},
+          modifiedAt: Date.now(),
+        };
+      }
+      return { ...s, weeks: next };
+    });
+    flashToast(`Copied to next ${n} week${n === 1 ? "" : "s"}`);
+  }
+
+  function bulkClearWeek() {
+    if (
+      !confirm(
+        "Clear all shifts, notes, and leaves on this week? Manual pay entries will be reset to ₱0."
+      )
+    )
+      return;
+    updateWeek({
+      schedule: {},
+      dayOverrides: {},
+      manualPay: {},
+      notes: {},
+      leaves: {},
+    });
+    flashToast("Week cleared");
+  }
+
+  function setRecurringLeaves(next: RecurringLeavesMap) {
+    setState((s) => ({ ...s, recurringLeaves: next }));
   }
 
   /* ---------- setters ---------- */
@@ -260,22 +382,25 @@ export default function Home() {
   return (
     <main className="min-h-screen text-ink">
       {/* MASTHEAD */}
-      <header className="screen-only px-6 md:px-12 lg:px-20 pt-10 md:pt-14 pb-10">
-        <div className="grid grid-cols-12 gap-6 items-end">
+      <header className="screen-only px-5 sm:px-5 sm:px-6 md:px-12 lg:px-20 pt-6 sm:pt-10 md:pt-14 pb-6 sm:pb-10">
+        <div className="grid grid-cols-12 gap-4 md:gap-6 items-end">
           <div className="col-span-12 md:col-span-7 rise">
-            <div className="flex items-center gap-4 text-[11px] font-mono tracking-[0.2em] uppercase text-ink-soft">
+            <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono tracking-[0.2em] uppercase text-ink-soft">
               <span>Vol. 01</span>
               <span className="w-8 deco-rule" />
               <span>The Weekly Ledger</span>
               <span className="w-8 deco-rule" />
               <span>24/7 Care</span>
             </div>
-            <h1 className="font-display text-[clamp(3.2rem,8vw,7rem)] leading-[0.86] mt-4">
+            <div className="sm:hidden text-[10px] font-mono tracking-[0.2em] uppercase text-ink-soft">
+              The Weekly Ledger · 24/7
+            </div>
+            <h1 className="font-display text-[clamp(2.6rem,8vw,7rem)] leading-[0.86] mt-3 sm:mt-4">
               Roster
               <span className="italic text-terracotta"> &amp; </span>
               Payroll
             </h1>
-            <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+            <p className="mt-4 sm:mt-5 max-w-xl text-[14px] sm:text-[15px] leading-relaxed text-ink-soft">
               A weekly staffing record for a children&rsquo;s home running
               continuous care. Each week archived, leaves tracked, and rules
               checked. Print, export, share — pick your channel.
@@ -331,7 +456,7 @@ export default function Home() {
 
       {/* STICKY TAB BAR */}
       <nav className="screen-only sticky top-0 z-40 bg-paper/92 backdrop-blur-md border-y border-ink/30">
-        <div className="px-6 md:px-12 lg:px-20">
+        <div className="px-5 sm:px-6 md:px-12 lg:px-20">
           <div className="flex items-stretch justify-between gap-6">
             <div className="flex items-stretch overflow-x-auto -mx-2 px-2">
               {TABS.map((tt) => {
@@ -413,9 +538,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Row 2: week navigation */}
-          <div className="flex items-center justify-between gap-3 py-3 border-t border-ink/20">
-            <div className="flex items-center gap-2">
+          {/* Row 2: week navigation + bulk + audit */}
+          <div className="flex items-center justify-between gap-3 py-3 border-t border-ink/20 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => jumpWeek(-1)} className="week-nav-btn" aria-label="Previous">←</button>
               <button
                 onClick={gotoThisWeek}
@@ -425,17 +550,59 @@ export default function Home() {
                 this week
               </button>
               <button onClick={() => jumpWeek(1)} className="week-nav-btn" aria-label="Next">→</button>
+
+              <span className="hidden md:inline text-ink/30 mx-1">·</span>
+
+              <button
+                onClick={() => bulkCopyToNext(1)}
+                className="action-btn-ghost"
+                title="Copy this week's pattern to next week"
+              >
+                copy → next
+              </button>
+              <button
+                onClick={() => bulkCopyToNext(4)}
+                className="action-btn-ghost hidden md:inline"
+                title="Copy this week's pattern to next 4 weeks"
+              >
+                copy → 4w
+              </button>
+              <button
+                onClick={bulkClearWeek}
+                className="action-btn-ghost"
+                title="Clear all entries for this week"
+              >
+                clear
+              </button>
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="action-btn-ghost"
+                title="Keyboard shortcuts"
+                aria-label="Keyboard shortcuts"
+              >
+                ?
+              </button>
             </div>
-            <div className="font-display text-lg md:text-xl leading-none truncate">
-              {weekLabel}
+            <div className="flex items-baseline gap-3 truncate">
+              <div className="font-display text-lg md:text-xl leading-none truncate">
+                {weekLabel}
+              </div>
               {!isCurrentWeek && (
-                <span className="font-mono text-[10px] tracking-widest uppercase text-terracotta ml-3">
+                <span className="font-mono text-[10px] tracking-widest uppercase text-terracotta">
                   archived
                 </span>
               )}
               {isCurrentWeek && (
-                <span className="font-mono text-[10px] tracking-widest uppercase text-sage ml-3">
+                <span className="font-mono text-[10px] tracking-widest uppercase text-sage">
                   · current
+                </span>
+              )}
+              {week.modifiedAt && (
+                <span
+                  className="font-mono text-[10px] tracking-widest uppercase text-ink-soft hidden md:inline"
+                  title={fmtTimestamp(new Date(week.modifiedAt))}
+                >
+                  · modified {timeAgo(week.modifiedAt)}
                 </span>
               )}
             </div>
@@ -444,7 +611,7 @@ export default function Home() {
       </nav>
 
       {/* PANELS */}
-      <div className="screen-only px-6 md:px-12 lg:px-20 pb-24">
+      <div className="screen-only px-5 sm:px-5 sm:px-6 md:px-12 lg:px-20 pb-24">
         {tab === "schedule" && (
           <SchedulePanel
             staff={state.staff}
@@ -483,10 +650,12 @@ export default function Home() {
             schedule={week.schedule}
             manualPay={week.manualPay}
             leaves={week.leaves}
+            recurringLeaves={state.recurringLeaves ?? {}}
             setStaff={setStaff}
             setSchedule={setSchedule}
             setManualPay={setManualPay}
             setLeaves={setLeaves}
+            setRecurringLeaves={setRecurringLeaves}
           />
         )}
         {tab === "payroll" && (
@@ -500,7 +669,7 @@ export default function Home() {
         )}
       </div>
 
-      <footer className="screen-only px-6 md:px-12 lg:px-20 py-10 border-t border-ink/30 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+      <footer className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 py-10 border-t border-ink/30 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <div className="font-display text-2xl leading-none">
             Children&rsquo;s Home, Operations
@@ -517,6 +686,46 @@ export default function Home() {
 
       {toast && <div className="toast">{toast}</div>}
 
+      {helpOpen && (
+        <div
+          className="cell-editor-backdrop"
+          onClick={() => setHelpOpen(false)}
+        >
+          <div
+            className="cell-editor"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="cell-editor-head">
+              <div>
+                <div className="font-display text-2xl leading-none">
+                  Keyboard
+                </div>
+                <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft mt-1">
+                  Shortcuts &amp; tips
+                </div>
+              </div>
+              <button onClick={() => setHelpOpen(false)} className="cell-editor-close">
+                ×
+              </button>
+            </header>
+            <ul className="cell-editor-section font-mono text-[12px] leading-loose">
+              <li><kbd>←</kbd> / <kbd>→</kbd> &nbsp; previous / next week</li>
+              <li><kbd>T</kbd> &nbsp; jump to this week</li>
+              <li><kbd>1</kbd>–<kbd>4</kbd> &nbsp; switch tabs (schedule, calendar, staff, payroll)</li>
+              <li><kbd>C</kbd> &nbsp; print calendar</li>
+              <li><kbd>P</kbd> &nbsp; print payroll</li>
+              <li><kbd>S</kbd> &nbsp; copy share link</li>
+              <li><kbd>?</kbd> &nbsp; open this help</li>
+              <li><kbd>Esc</kbd> &nbsp; close</li>
+            </ul>
+            <p className="cell-editor-section font-mono text-[11px] leading-relaxed text-ink-soft">
+              Long-press any cell on the schedule, right-click, or
+              shift-click to open the editor for shift, leave, and notes.
+            </p>
+          </div>
+        </div>
+      )}
+
       <PrintView
         mode={printMode}
         staff={state.staff}
@@ -531,6 +740,18 @@ export default function Home() {
       />
     </main>
   );
+}
+
+function timeAgo(ms: number): string {
+  const diff = Date.now() - ms;
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
 }
 
 function SyncDot({ status }: { status: SyncStatus }) {

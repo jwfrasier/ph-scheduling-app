@@ -5,8 +5,10 @@ import { Violation } from "../lib/data";
 
 export default function Violations({
   issues,
+  onJumpTo,
 }: {
   issues: Violation[];
+  onJumpTo?: (v: Violation) => void;
 }) {
   const [open, setOpen] = useState(false);
   if (issues.length === 0) {
@@ -44,20 +46,43 @@ export default function Violations({
       </div>
       <ul className="violations-list">
         {top.map((v, i) => (
-          <li key={i}>
-            <span className="violations-tag">{tagFor(v)}</span>
-            {v.message}
-          </li>
+          <Item key={i} v={v} onJumpTo={onJumpTo} />
         ))}
         {open &&
-          rest.map((v, i) => (
-            <li key={`r${i}`}>
-              <span className="violations-tag">{tagFor(v)}</span>
-              {v.message}
-            </li>
-          ))}
+          rest.map((v, i) => <Item key={`r${i}`} v={v} onJumpTo={onJumpTo} />)}
       </ul>
     </aside>
+  );
+}
+
+function Item({
+  v,
+  onJumpTo,
+}: {
+  v: Violation;
+  onJumpTo?: (v: Violation) => void;
+}) {
+  const clickable = !!onJumpTo;
+  return (
+    <li
+      onClick={clickable ? () => onJumpTo!(v) : undefined}
+      className={clickable ? "violations-li-clickable" : ""}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onJumpTo!(v);
+              }
+            }
+          : undefined
+      }
+    >
+      <span className="violations-tag">{tagFor(v)}</span>
+      {v.message}
+    </li>
   );
 }
 

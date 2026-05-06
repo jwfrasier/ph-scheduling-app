@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DAYS,
   DAYS_LONG,
@@ -58,6 +58,22 @@ export default function SchedulePanel({
   const today = new Date();
   const t = totals(staff, schedule, manualPay, leaves);
   const [editing, setEditing] = useState<{ id: string; day: Day } | null>(null);
+  const suppressClickRef = useRef(false);
+  const [highlight, setHighlight] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleFocusCell(e: Event) {
+      const detail = (e as CustomEvent<{ id: string }>).detail;
+      if (!detail?.id) return;
+      const el = document.getElementById(detail.id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlight(detail.id);
+      setTimeout(() => setHighlight(null), 1800);
+    }
+    window.addEventListener("focus-cell", handleFocusCell as EventListener);
+    return () => window.removeEventListener("focus-cell", handleFocusCell as EventListener);
+  }, []);
 
   function toggleCell(staffId: string, day: Day) {
     const current = schedule[staffId]?.[day] ?? null;
@@ -104,7 +120,28 @@ export default function SchedulePanel({
 
   return (
     <section className="pt-10 rise">
-      <Violations issues={violations} />
+      <Violations
+        issues={violations}
+        onJumpTo={(v) => {
+          if ("staffId" in v && "day" in v) {
+            const id = `cell-${v.staffId}-${v.day}`;
+            window.dispatchEvent(
+              new CustomEvent("focus-cell", { detail: { id } })
+            );
+          } else if (v.kind === "coverage") {
+            // No matching row in schedule view; just scroll to the day header.
+            const el = document.querySelector(`th:nth-of-type(${dayIndex(v.day) + 2})`);
+            if (el)
+              (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+          } else if (v.kind === "over-cap") {
+            // Scroll to the staff's first non-empty cell.
+            const id = `cell-${v.staffId}-Sun`;
+            window.dispatchEvent(
+              new CustomEvent("focus-cell", { detail: { id } })
+            );
+          }
+        }}
+      />
 
       <div className="flex items-baseline gap-4 mb-3 mt-6">
         <span className="font-mono text-[11px] tracking-[0.25em] uppercase text-terracotta">
@@ -185,10 +222,15 @@ export default function SchedulePanel({
                     const k = schedule[s.id]?.[d] ?? null;
                     const lv = leaves[s.id]?.[d];
                     const note = notes[s.id]?.[d];
+                    const cellId = `cell-${s.id}-${d}`;
+                    const isHighlight = highlight === cellId;
                     return (
                       <td
                         key={d}
-                        className="text-center align-middle px-1 py-3"
+                        id={cellId}
+                        className={`text-center align-middle px-1 py-3 ${
+                          isHighlight ? "cell-highlight" : ""
+                        }`}
                       >
                         <button
                           type="button"
@@ -198,6 +240,10 @@ export default function SchedulePanel({
                             note ? ` · ${note}` : ""
                           }${lv ? ` · ${LEAVE_LABELS[lv.type]}` : ""}`}
                           onClick={(e) => {
+                            if (suppressClickRef.current) {
+                              suppressClickRef.current = false;
+                              return;
+                            }
                             if (e.shiftKey || e.altKey || e.metaKey) {
                               setEditing({ id: s.id, day: d });
                             } else {
@@ -209,9 +255,9 @@ export default function SchedulePanel({
                             setEditing({ id: s.id, day: d });
                           }}
                           onPointerDown={(e) => {
-                            // long-press handler
                             const target = e.currentTarget;
                             const timer = setTimeout(() => {
+                              suppressClickRef.current = true;
                               setEditing({ id: s.id, day: d });
                             }, 450);
                             const cancel = () => {
@@ -312,6 +358,10 @@ export default function SchedulePanel({
         })()}
     </section>
   );
+}
+
+function dayIndex(d: Day): number {
+  return DAYS.indexOf(d);
 }
 
 function leaveGlyph(t: string): string {

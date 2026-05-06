@@ -59,7 +59,12 @@ export type WeekData = {
   manualPay: ManualPayMap;
   notes: NotesMap;
   leaves: LeavesMap;
+  /** Unix ms of last edit. Set on any week-scoped setter. */
+  modifiedAt?: number;
 };
+
+/** Per-staff recurring leave by weekday — applied when a new week seeds. */
+export type RecurringLeavesMap = Record<string, Partial<Record<Day, LeaveType>>>;
 
 export const DEFAULT_SHIFT_TIMES: ShiftTimes = {
   D: { start: "06:00", end: "14:00", hours: 8 },
@@ -132,10 +137,31 @@ export type AppState = {
   shiftTimes: ShiftTimes;
   weeks: Record<string, WeekData>;
   currentWeekKey: string;
+  recurringLeaves?: RecurringLeavesMap;
 };
 
 export function blankWeek(): WeekData {
   return { schedule: {}, dayOverrides: {}, manualPay: {}, notes: {}, leaves: {} };
+}
+
+/** Apply recurring leaves into a fresh week's leaves map. */
+export function applyRecurring(
+  base: WeekData,
+  recurring?: RecurringLeavesMap
+): WeekData {
+  if (!recurring) return base;
+  const leaves: LeavesMap = { ...base.leaves };
+  for (const id of Object.keys(recurring)) {
+    const row = recurring[id] ?? {};
+    for (const d of Object.keys(row) as Day[]) {
+      const t = row[d];
+      if (!t) continue;
+      if (!leaves[id]) leaves[id] = {};
+      // don't overwrite an existing leave entry on the week
+      if (!leaves[id][d]) leaves[id]![d] = { type: t };
+    }
+  }
+  return { ...base, leaves };
 }
 
 export function makeDefaultState(): AppState {
@@ -191,6 +217,7 @@ function ensureWeekShape(w: WeekData): WeekData {
     manualPay: w.manualPay ?? {},
     notes: w.notes ?? {},
     leaves: w.leaves ?? {},
+    modifiedAt: w.modifiedAt,
   };
 }
 
@@ -435,6 +462,7 @@ export function parseState(parsed: unknown): AppState {
       shiftTimes: (p.shiftTimes as ShiftTimes) ?? DEFAULT_SHIFT_TIMES,
       weeks: filled,
       currentWeekKey: p.currentWeekKey as string,
+      recurringLeaves: (p.recurringLeaves as RecurringLeavesMap) ?? {},
     };
   }
 
@@ -662,6 +690,99 @@ function toCsv(rows: string[][]): string {
   const escape = (s: string) =>
     /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   return rows.map((r) => r.map(escape).join(",")).join("\n");
+}
+
+/* ---------- iCal generation ---------- */
+
+export function buildIcs(opts: {
+  staff: Staff[];
+  shiftTimes: ShiftTimes;
+  weekKey: string;
+  week: WeekData;
+  /** If set, only emit events for this staff id. */
+  filterStaffId?: string;
+  prodId?: string;
+}): string {
+  const { staff, shiftTimes, weekKey, week, filterStaffId } = opts;
+  const dates = weekDatesFromKey(weekKey);
+  const lines: string[] = [];
+  const stamp = formatIcsTime(new Date());
+
+  lines.push("BEGIN:VCALENDAR");
+  lines.push("VERSION:2.0");
+  lines.push(`PRODID:-//childrens-home-roster//EN`);
+  lines.push("CALSCALE:GREGORIAN");
+  lines.push("METHOD:PUBLISH");
+  lines.push(`X-WR-CALNAME:Children's Home Roster`);
+
+  for (const s of staff) {
+    if (filterStaffId && s.id !== filterStaffId) continue;
+    const row = week.schedule[s.id] ?? {};
+    for (const d of DAYS) {
+      const kind = row[d];
+      if (!kind) continue;
+      if (week.leaves[s.id]?.[d]) continue;
+      const w = effectiveTimes(shiftTimes, week.dayOverrides, d)[kind];
+      const startDt = combineDateTime(dates[d], w.start);
+      const endDt = combineDateTime(dates[d], w.end);
+      // night shift wraps past midnight if end < start
+      if (endDt.getTime() <= startDt.getTime()) {
+        endDt.setDate(endDt.getDate() + 1);
+      }
+      const note = week.notes[s.id]?.[d];
+      const summary = `${kind === "D" ? "Day" : "Night"} shift · ${s.name}`;
+      const desc = [
+        `Caregiver: ${s.name}`,
+        `Role: ${s.role}`,
+        note ? `Note: ${note}` : null,
+      ]
+        .filter(Boolean)
+        .join("\\n");
+      const uid = `${weekKey}-${s.id}-${d}-${kind}@childrens-home`;
+
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${uid}`);
+      lines.push(`DTSTAMP:${stamp}`);
+      lines.push(`DTSTART:${formatIcsTime(startDt)}`);
+      lines.push(`DTEND:${formatIcsTime(endDt)}`);
+      lines.push(`SUMMARY:${escapeIcs(summary)}`);
+      if (desc) lines.push(`DESCRIPTION:${escapeIcs(desc)}`);
+      lines.push("END:VEVENT");
+    }
+  }
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+function combineDateTime(date: Date, hhmm: string): Date {
+  const [h, m] = hhmm.split(":").map(Number);
+  const out = new Date(date);
+  out.setHours(h ?? 0, m ?? 0, 0, 0);
+  return out;
+}
+
+function formatIcsTime(d: Date): string {
+  // Floating local time. Subscribers will interpret in their own zone, which
+  // matches how staff use the schedule on their phones.
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    d.getFullYear().toString() +
+    pad(d.getMonth() + 1) +
+    pad(d.getDate()) +
+    "T" +
+    pad(d.getHours()) +
+    pad(d.getMinutes()) +
+    pad(d.getSeconds())
+  );
+}
+
+function escapeIcs(s: string): string {
+  return s
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\r?\n/g, "\\n");
 }
 
 export function downloadCsv(filename: string, csv: string): void {
