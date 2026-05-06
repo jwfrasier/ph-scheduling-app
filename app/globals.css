@@ -1059,66 +1059,80 @@ kbd {
   padding: 2px 8px;
 }
 
-/* shift pills inside staff card */
+/* shift selectors inside staff card — three explicit options per day */
 
-.staff-shift-pill {
+.staff-shift-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(28, 26, 23, 0.2);
-  cursor: pointer;
-  min-height: 50px;
-  transition: all 140ms ease;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 4px 6px;
+  border: 1px solid rgba(28, 26, 23, 0.15);
+  background: rgba(255, 255, 255, 0.4);
+  position: relative;
 }
 
-.staff-shift-pill:hover {
-  border-color: var(--ink);
-  transform: translateY(-1px);
+.staff-shift-cell.is-blocked {
+  border-color: var(--terracotta);
+  border-style: dashed;
 }
 
-.staff-shift-pill-day {
+.staff-shift-cell-day {
+  font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
+  text-align: center;
   color: var(--ink-soft);
 }
 
-.staff-shift-pill-state {
+.staff-shift-cell-options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.staff-shift-opt {
+  font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.04em;
-  margin-top: 2px;
+  padding: 6px 4px;
+  background: transparent;
+  border: 1px solid rgba(28, 26, 23, 0.2);
+  cursor: pointer;
+  transition: all 120ms ease;
+  color: var(--ink-soft);
+}
+
+.staff-shift-opt:hover {
+  background: rgba(28, 26, 23, 0.04);
   color: var(--ink);
 }
 
-.staff-shift-pill.is-day {
-  background: rgba(200, 150, 67, 0.15);
+.staff-shift-opt.is-active.is-off {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.staff-shift-opt.is-active.is-day {
+  background: rgba(200, 150, 67, 0.85);
+  color: var(--ink);
   border-color: var(--ochre);
 }
 
-.staff-shift-pill.is-day .staff-shift-pill-state {
-  color: var(--ochre);
-}
-
-.staff-shift-pill.is-night {
+.staff-shift-opt.is-active.is-night {
   background: var(--night);
+  color: var(--paper);
   border-color: var(--night);
 }
 
-.staff-shift-pill.is-night .staff-shift-pill-day,
-.staff-shift-pill.is-night .staff-shift-pill-state {
-  color: var(--paper);
-}
-
-.staff-shift-pill.is-blocked {
-  outline: 1px dashed var(--terracotta);
-  outline-offset: -3px;
-}
-
-.staff-shift-pill.is-blocked::after {
-  content: "!";
-  position: absolute;
+.staff-shift-cell-warn {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  text-align: center;
+  margin-top: 2px;
 }
 
 /* available-days toggles in edit mode */

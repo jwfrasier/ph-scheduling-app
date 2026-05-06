@@ -98,12 +98,13 @@ export default function StaffPanel({
     const nextOrNull = next.length === 7 ? null : next;
     setDraft({ ...draft, allowedDays: nextOrNull });
   }
-  function setShift(staffId: string, day: Day) {
-    const current = (schedule[staffId]?.[day] ?? null) as ShiftKind | null;
-    const cur = (current ?? "none") as "none" | ShiftKind;
-    const next = NEXT_SHIFT[cur];
+  function setShiftValue(
+    staffId: string,
+    day: Day,
+    next: ShiftKind | null
+  ) {
     const row = { ...(schedule[staffId] ?? {}) };
-    if (next === "none") delete row[day];
+    if (next === null) delete row[day];
     else row[day] = next;
     setSchedule({ ...schedule, [staffId]: row });
   }
@@ -485,10 +486,10 @@ export default function StaffPanel({
                 )}
               </div>
 
-              {/* This week's shifts — always editable */}
+              {/* This week's shifts — three explicit options per day */}
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
                 <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
-                  This week&rsquo;s shifts · click to cycle
+                  This week&rsquo;s shifts
                 </div>
                 <div className="grid grid-cols-7 gap-2">
                   {DAYS.map((d) => {
@@ -496,22 +497,51 @@ export default function StaffPanel({
                     const blocked =
                       s.allowedDays && !s.allowedDays.includes(d);
                     return (
-                      <button
+                      <div
                         key={d}
-                        type="button"
-                        onClick={() => setShift(s.id, d)}
-                        className={`staff-shift-pill ${
-                          k === "D" ? "is-day" : k === "N" ? "is-night" : ""
-                        } ${blocked ? "is-blocked" : ""}`}
-                        title={`${DAYS_LONG[d]} · click to cycle off → day → night`}
+                        className={`staff-shift-cell ${blocked ? "is-blocked" : ""}`}
                       >
-                        <span className="staff-shift-pill-day font-mono text-[10px]">
+                        <div className="staff-shift-cell-day font-mono">
                           {d}
-                        </span>
-                        <span className="staff-shift-pill-state font-mono">
-                          {k === "D" ? "Day" : k === "N" ? "Night" : "Off"}
-                        </span>
-                      </button>
+                        </div>
+                        <div className="staff-shift-cell-options">
+                          <button
+                            type="button"
+                            onClick={() => setShiftValue(s.id, d, null)}
+                            className={`staff-shift-opt ${
+                              k === null ? "is-active is-off" : ""
+                            }`}
+                            title={`${DAYS_LONG[d]} · off`}
+                          >
+                            Off
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShiftValue(s.id, d, "D")}
+                            className={`staff-shift-opt ${
+                              k === "D" ? "is-active is-day" : ""
+                            }`}
+                            title={`${DAYS_LONG[d]} · day shift`}
+                          >
+                            Day
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShiftValue(s.id, d, "N")}
+                            className={`staff-shift-opt ${
+                              k === "N" ? "is-active is-night" : ""
+                            }`}
+                            title={`${DAYS_LONG[d]} · night shift`}
+                          >
+                            Night
+                          </button>
+                        </div>
+                        {blocked && (
+                          <div className="staff-shift-cell-warn font-mono">
+                            off-limits
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

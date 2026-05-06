@@ -134,18 +134,29 @@ describe("<StaffPanel />", () => {
     expect(next.find((s) => s.id === "teng")?.rate).toBe(600);
   });
 
-  it("clicking a shift pill cycles the day's shift", () => {
+  it("clicking 'Off' on a shift cell clears that day's assignment", () => {
     const { setSchedule } = setup();
     const card = getCard("Mary Ann");
-    // Mary Ann's first pill is Sun (already N). Click cycles N → off.
-    const pills = within(card).getAllByRole("button").filter((b) =>
-      b.className.includes("staff-shift-pill")
-    );
-    expect(pills).toHaveLength(7);
-    fireEvent.click(pills[0]); // Sun
+    // Mary Ann's Sun is N. Find the Off button in the Sun cell.
+    const offButtons = within(card)
+      .getAllByRole("button")
+      .filter((b) => /^Off$/.test(b.textContent ?? ""));
+    expect(offButtons.length).toBeGreaterThanOrEqual(7);
+    fireEvent.click(offButtons[0]); // Sun's Off
     expect(setSchedule).toHaveBeenCalled();
     const sched = setSchedule.mock.calls[0][0] as Schedule;
     expect(sched.maryann?.Sun).toBeUndefined();
+  });
+
+  it("clicking 'Night' on a shift cell sets that day to night", () => {
+    const { setSchedule } = setup();
+    const card = getCard("Tessie");
+    const nightButtons = within(card)
+      .getAllByRole("button")
+      .filter((b) => /^Night$/.test(b.textContent ?? ""));
+    fireEvent.click(nightButtons[0]); // Sun's Night
+    const sched = setSchedule.mock.calls[0][0] as Schedule;
+    expect(sched.tessie?.Sun).toBe("N");
   });
 
   it("toggling an available-day in edit mode commits allowedDays on save", () => {
