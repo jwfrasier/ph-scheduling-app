@@ -1722,18 +1722,18 @@ select.shift-select.is-blocked {
   border-spacing: 0;
 }
 
+/* Schedule table header. Originally position:sticky, but combined with
+ * border-collapse:separate this triggers a Chromium layout bug where the
+ * <th> cells render at their full visual height while document flow only
+ * reserves a few px for the THEAD — so the first body row renders BEHIND
+ * the headers and disappears (Tessie was hidden this way). Plain static
+ * positioning fixes the overlap; the table is short enough that a sticky
+ * header isn't worth the bug. */
 .sticky-head {
-  position: sticky;
-  top: 65px;
-  z-index: 20;
   background: var(--paper);
-  background-image: linear-gradient(var(--paper), var(--paper));
 }
 
 .sticky-head-rule {
-  position: sticky;
-  top: 113px;
-  z-index: 19;
   background: var(--paper);
 }
 
@@ -1775,10 +1775,6 @@ thead .sticky-col {
   opacity: 1;
 }
 
-@media (max-width: 768px) {
-  .sticky-head { top: 60px; }
-  .sticky-head-rule { top: 108px; }
-}
 
 .stamp {
   display: inline-block;
