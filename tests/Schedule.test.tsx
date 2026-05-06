@@ -101,24 +101,6 @@ describe("<SchedulePanel />", () => {
     expect(next.trisha?.Mon).toBeUndefined();
   });
 
-  it("manual pay input fires setManualPay", () => {
-    const { setManualPay } = setup();
-    const inputs = screen
-      .getAllByRole("spinbutton")
-      .filter((el) => el.getAttribute("class")?.includes("amount-input"));
-    expect(inputs.length).toBeGreaterThan(0);
-    fireEvent.change(inputs[0], { target: { value: "4500" } });
-    expect(setManualPay).toHaveBeenCalled();
-    const next = setManualPay.mock.calls[0][0] as ManualPayMap;
-    expect(Object.values(next)).toContain(4500);
-  });
-
-  it("renders the schedule's grand total", () => {
-    setup();
-    // weekly run-rate = 13,500 weekly + 6,000 × 24/52 ≈ 16,269
-    expect(screen.getByText(/₱16,269/)).toBeInTheDocument();
-  });
-
   it("right-clicking a cell opens the editor", () => {
     setup();
     const cell = document.getElementById("cell-tessie-Sun")!;

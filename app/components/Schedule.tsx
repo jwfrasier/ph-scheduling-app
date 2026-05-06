@@ -9,7 +9,6 @@ import {
   LEAVE_LABELS,
   LeavesMap,
   ManualPayMap,
-  MAX_SHIFTS,
   NotesMap,
   Schedule,
   ShiftKind,
@@ -17,10 +16,6 @@ import {
   Violation,
   fmtDayDate,
   isSameDay,
-  pesos,
-  shiftCount,
-  staffPay,
-  totals,
 } from "../lib/data";
 import Violations from "./Violations";
 import CellEditor from "./CellEditor";
@@ -60,10 +55,10 @@ export default function SchedulePanel({
   setLeaves: (next: LeavesMap) => void;
 }) {
   const today = new Date();
-  const t = totals(staff, schedule, manualPay, leaves);
   const [editing, setEditing] = useState<{ id: string; day: Day } | null>(null);
   const suppressClickRef = useRef(false);
   const [highlight, setHighlight] = useState<string | null>(null);
+  void manualPay; void setManualPay;
 
   useEffect(() => {
     function handleFocusCell(e: Event) {
@@ -116,10 +111,6 @@ export default function SchedulePanel({
 
   function getLeave(id: string, d: Day) {
     return leaves[id]?.[d] ?? null;
-  }
-
-  function updateManual(id: string, val: number) {
-    setManualPay({ ...manualPay, [id]: val });
   }
 
   return (
@@ -202,23 +193,15 @@ export default function SchedulePanel({
                   </th>
                 );
               })}
-              <th className="sticky-head text-right py-3 pl-4 font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft">
-                Shifts
-              </th>
-              <th className="sticky-head text-right py-3 pl-4 pr-3 font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft w-[14%]">
-                Pay
-              </th>
             </tr>
             <tr aria-hidden>
-              <th colSpan={10} className="sticky-head-rule p-0">
+              <th colSpan={8} className="sticky-head-rule p-0">
                 <div className="h-[2px] bg-ink" />
               </th>
             </tr>
           </thead>
           <tbody>
             {staff.map((s, i) => {
-              const count = shiftCount(schedule, s.id);
-              const overCap = count > MAX_SHIFTS;
               const stripe = i % 2 === 1;
               return (
                 <tr
@@ -307,50 +290,10 @@ export default function SchedulePanel({
                       </td>
                     );
                   })}
-                  <td className="text-right pl-4 font-mono tabnum text-base align-middle">
-                    <span className={overCap ? "text-terracotta" : "text-ink"}>
-                      {count}
-                    </span>
-                    <span className="text-ink/30">/{MAX_SHIFTS}</span>
-                  </td>
-                  <td className="text-right pl-4 pr-3 align-middle">
-                    {s.manual ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="font-mono text-ink/40">₱</span>
-                        <input
-                          className="amount-input max-w-[110px]"
-                          type="number"
-                          min={0}
-                          step={50}
-                          value={manualPay[s.id] ?? 0}
-                          onChange={(e) =>
-                            updateManual(s.id, Number(e.target.value))
-                          }
-                        />
-                      </div>
-                    ) : (
-                      <span className="font-mono tabnum text-base">
-                        {pesos(staffPay(s, schedule, manualPay, leaves))}
-                      </span>
-                    )}
-                  </td>
                 </tr>
               );
             })}
           </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={8} className="pt-4 pl-3">
-                <div className="deco-rule" />
-              </td>
-              <td className="pt-4 text-right font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft">
-                total
-              </td>
-              <td className="pt-4 pl-4 pr-3 text-right font-display text-2xl">
-                {pesos(t.grand)}
-              </td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 
