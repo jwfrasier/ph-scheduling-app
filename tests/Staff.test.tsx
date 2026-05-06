@@ -176,45 +176,10 @@ describe("<StaffPanel />", () => {
     expect(t.allowedDays).toContain("Sat");
   });
 
-  it("recurring-leave selector fires setRecurringLeaves", () => {
-    const { setRecurringLeaves } = setup();
-    const card = getCard("Teng");
-    const recSelects = within(card)
-      .getAllByRole("combobox")
-      .filter((el) => el.className.includes("select-input"));
-    expect(recSelects.length).toBe(7);
-    fireEvent.change(recSelects[1], { target: { value: "vacation" } });
-    const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
-    expect(next.teng?.Mon).toBe("vacation");
-  });
-
-  it("clearing a recurring-leave selector removes the rule", () => {
-    const { setRecurringLeaves } = setup({
-      recurringLeaves: { teng: { Mon: "vacation" } },
-    });
-    const card = getCard("Teng");
-    const recSelects = within(card)
-      .getAllByRole("combobox")
-      .filter((el) => el.className.includes("select-input"));
-    fireEvent.change(recSelects[1], { target: { value: "" } });
-    const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
-    expect(next.teng).toBeUndefined();
-  });
-
-  it("shows restore-defaults banner when default IDs are missing", () => {
-    setup({ staff: DEFAULT_STAFF.filter((s) => s.id !== "tessie") });
-    expect(screen.getByText(/default caregiver/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /restore defaults/i })
-    ).toBeInTheDocument();
-  });
-
-  it("clicking restore-defaults adds the missing caregivers back", () => {
-    const { setStaff } = setup({
-      staff: DEFAULT_STAFF.filter((s) => s.id !== "tessie"),
-    });
-    fireEvent.click(screen.getByRole("button", { name: /restore defaults/i }));
-    const next = setStaff.mock.calls[0][0] as Staff[];
-    expect(next.find((s) => s.id === "tessie")?.name).toBe("Tessie");
+  it("salaried badge shows for manual staff", () => {
+    setup();
+    // Tessie is manual=true in DEFAULT_STAFF
+    const card = getCard("Tessie");
+    expect(within(card).getAllByText(/salaried/i).length).toBeGreaterThan(0);
   });
 });

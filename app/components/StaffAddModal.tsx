@@ -111,14 +111,14 @@ export default function StaffAddModal({
                 className="check"
               />
               <span className="font-mono text-[13px] tracking-[0.2em] uppercase">
-                Manual amount
+                Salaried · fixed weekly amount
               </span>
             </label>
           </div>
           {manual ? (
             <div className="staff-modal-row mt-2">
               <span className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
-                Weekly
+                Salary / wk
               </span>
               <span className="font-mono text-ink/40 ml-2">₱</span>
               <input

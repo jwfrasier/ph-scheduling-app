@@ -204,7 +204,7 @@ export default function Home() {
   function jumpWeek(deltaWeeks: number) {
     setState((s) => {
       const next = shiftWeekKey(s.currentWeekKey, deltaWeeks);
-      const seeded = applyRecurring(getOrSeedWeek(s.weeks, next), s.recurringLeaves);
+      const seeded = getOrSeedWeek(s.weeks, next);
       return {
         ...s,
         currentWeekKey: next,
@@ -218,10 +218,7 @@ export default function Home() {
     setState((s) => ({
       ...s,
       currentWeekKey: k,
-      weeks: {
-        ...s.weeks,
-        [k]: applyRecurring(getOrSeedWeek(s.weeks, k), s.recurringLeaves),
-      },
+      weeks: { ...s.weeks, [k]: getOrSeedWeek(s.weeks, k) },
     }));
   }
 

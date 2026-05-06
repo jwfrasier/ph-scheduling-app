@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DAYS,
   DAYS_LONG,
-  DEFAULT_STAFF,
   Day,
-  LEAVE_LABELS,
-  LeaveType,
   LeavesMap,
   ManualPayMap,
   RecurringLeavesMap,
@@ -19,15 +16,9 @@ import {
   staffPay,
   uid,
 } from "../lib/data";
-
-const NEXT_SHIFT: Record<"none" | ShiftKind, "none" | ShiftKind> = {
-  none: "D",
-  D: "N",
-  N: "none",
-};
 import StaffAddModal from "./StaffAddModal";
 
-type PayFilter = "all" | "auto" | "manual";
+type PayFilter = "all" | "shift" | "salaried";
 
 type EditDraft = {
   name: string;
@@ -69,12 +60,6 @@ export default function StaffPanel({
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditDraft | null>(null);
-
-  // Detect missing default IDs
-  const missingDefaults = useMemo(() => {
-    const present = new Set(staff.map((s) => s.id));
-    return DEFAULT_STAFF.filter((d) => !present.has(d.id));
-  }, [staff]);
 
   function startEdit(s: Staff) {
     setEditingId(s.id);
@@ -158,19 +143,6 @@ export default function StaffPanel({
     notify?.(`Removed ${target.name}`);
   }
 
-  function setRec(
-    id: string,
-    day: (typeof DAYS)[number],
-    type: LeaveType | null
-  ) {
-    const row = { ...(recurringLeaves[id] ?? {}) };
-    if (type === null) delete row[day];
-    else row[day] = type;
-    const next = { ...recurringLeaves, [id]: row };
-    if (Object.keys(row).length === 0) delete next[id];
-    setRecurringLeaves(next);
-  }
-
   function confirmAdd(s: Omit<Staff, "id">, manualPayAmount: number) {
     const id = uid();
     const newStaff: Staff = { ...s, id };
@@ -184,55 +156,11 @@ export default function StaffPanel({
     notify?.(`Added ${newStaff.name}`);
   }
 
-  function restoreMissingDefaults() {
-    if (missingDefaults.length === 0) return;
-    if (
-      !confirm(
-        `Restore ${missingDefaults
-          .map((s) => s.name)
-          .join(", ")}? Their PRD-default schedule will also be re-applied where empty.`
-      )
-    )
-      return;
-    // Prepend missing defaults so they appear at top
-    setStaff([...missingDefaults, ...staff]);
-    // Re-apply default schedule for restored staff if missing
-    const restoredSchedule = { ...schedule };
-    const restoredPay = { ...manualPay };
-    for (const ds of missingDefaults) {
-      if (!restoredSchedule[ds.id]) {
-        // Look up the PRD default schedule from data.ts
-        const defaults: Record<string, Partial<Record<typeof DAYS[number], "D" | "N">>> = {
-          tessie:  { Sun: "D", Mon: "D", Tue: "D", Wed: "D", Sat: "D" },
-          eula:    { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D" },
-          teng:    { Sun: "D", Thu: "D", Fri: "D", Sat: "D" },
-          jane:    { Sun: "D", Tue: "D", Thu: "N", Fri: "N", Sat: "D" },
-          trisha:  { Mon: "N", Tue: "N", Wed: "N", Thu: "N", Fri: "N" },
-          jessica: { Sun: "N", Mon: "N", Tue: "N", Wed: "N", Sat: "N" },
-          alondra: { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D" },
-          maryann: { Sun: "N" },
-          j:       { Fri: "N", Sat: "N" },
-        };
-        if (defaults[ds.id]) restoredSchedule[ds.id] = defaults[ds.id]!;
-      }
-      if (ds.manual && !restoredPay[ds.id]) {
-        restoredPay[ds.id] = 3000;
-      }
-    }
-    setSchedule(restoredSchedule);
-    setManualPay(restoredPay);
-    notify?.(
-      `Restored ${missingDefaults.length} default caregiver${
-        missingDefaults.length === 1 ? "" : "s"
-      }`
-    );
-  }
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return staff.filter((s) => {
-      if (payFilter === "auto" && s.manual) return false;
-      if (payFilter === "manual" && !s.manual) return false;
+      if (payFilter === "shift" && s.manual) return false;
+      if (payFilter === "salaried" && !s.manual) return false;
       if (q) {
         const hay = `${s.name} ${s.role}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -255,22 +183,6 @@ export default function StaffPanel({
         </button>
       </div>
 
-      {missingDefaults.length > 0 && (
-        <aside className="staff-restore-banner">
-          <div>
-            <div className="font-display text-2xl leading-tight">
-              {missingDefaults.length} default caregiver
-              {missingDefaults.length === 1 ? "" : "s"} missing
-            </div>
-            <div className="font-mono text-[12px] tracking-widest uppercase text-ink-soft mt-1">
-              {missingDefaults.map((s) => s.name).join(" · ")}
-            </div>
-          </div>
-          <button onClick={restoreMissingDefaults} className="action-btn">
-            restore defaults
-          </button>
-        </aside>
-      )}
 
       <div className="staff-filter-bar">
         <input
@@ -280,7 +192,7 @@ export default function StaffPanel({
           onChange={(e) => setSearch(e.target.value)}
         />
         <div className="staff-filter-segment" role="tablist" aria-label="Pay filter">
-          {(["all", "auto", "manual"] as const).map((f) => (
+          {(["all", "shift", "salaried"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setPayFilter(f)}
@@ -341,6 +253,11 @@ export default function StaffPanel({
                     <>
                       <div className="font-display text-2xl leading-tight">
                         {s.name}
+                        {s.manual && (
+                          <span className="ml-2 align-middle inline-block font-mono text-[11px] tracking-[0.2em] uppercase text-terracotta border border-terracotta/60 px-1.5 py-0.5 -translate-y-1">
+                            salaried
+                          </span>
+                        )}
                       </div>
                       <div className="font-mono text-[13px] tracking-[0.1em] uppercase text-ink-soft mt-1">
                         {s.role}
@@ -389,28 +306,43 @@ export default function StaffPanel({
               <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[13px]">
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
-                    Rate / shift
+                    {(editing ? drafted!.manual : s.manual) ? "Salary / wk" : "Rate / shift"}
                   </div>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-ink/40">₱</span>
                     {editing ? (
-                      <input
-                        type="number"
-                        min={0}
-                        step={50}
-                        value={drafted!.rate}
-                        disabled={drafted!.manual}
-                        onChange={(e) =>
-                          setDraft({
-                            ...drafted!,
-                            rate: Number(e.target.value),
-                          })
-                        }
-                        className="amount-input"
-                      />
+                      drafted!.manual ? (
+                        <input
+                          type="number"
+                          min={0}
+                          step={50}
+                          value={drafted!.manualPay}
+                          onChange={(e) =>
+                            setDraft({
+                              ...drafted!,
+                              manualPay: Number(e.target.value),
+                            })
+                          }
+                          className="amount-input"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          step={50}
+                          value={drafted!.rate}
+                          onChange={(e) =>
+                            setDraft({
+                              ...drafted!,
+                              rate: Number(e.target.value),
+                            })
+                          }
+                          className="amount-input"
+                        />
+                      )
                     ) : (
                       <span className="font-mono text-base tabnum">
-                        {s.rate}
+                        {s.manual ? (manualPay[s.id] ?? 0) : s.rate}
                       </span>
                     )}
                   </div>
@@ -443,7 +375,7 @@ export default function StaffPanel({
                       className="check"
                     />
                     <span className="font-mono text-[14px] tracking-[0.2em] uppercase">
-                      Manual pay
+                      Salaried
                     </span>
                   </label>
                 ) : (
@@ -452,38 +384,19 @@ export default function StaffPanel({
                       s.manual ? "text-terracotta" : "text-ink-soft"
                     }`}
                   >
-                    {s.manual ? "Manual pay" : "Auto pay"}
+                    {s.manual ? "Salaried" : "Per shift"}
                   </span>
                 )}
-                {editing && drafted!.manual ? (
-                  <label className="flex items-baseline gap-1">
-                    <span className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
-                      amount
+                {!editing &&
+                  (s.manual ? (
+                    <span className="font-mono text-base tabnum">
+                      {pesos(manualPay[s.id] ?? 0)} / wk
                     </span>
-                    <span className="font-mono text-ink/40">₱</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={50}
-                      value={drafted!.manualPay}
-                      onChange={(e) =>
-                        setDraft({
-                          ...drafted!,
-                          manualPay: Number(e.target.value),
-                        })
-                      }
-                      className="amount-input max-w-[110px]"
-                    />
-                  </label>
-                ) : !editing && s.manual ? (
-                  <span className="font-mono text-base tabnum">
-                    {pesos(manualPay[s.id] ?? 0)}
-                  </span>
-                ) : (
-                  <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
-                    {c} × {pesos(s.rate)}
-                  </span>
-                )}
+                  ) : (
+                    <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
+                      {c} × {pesos(s.rate)}
+                    </span>
+                  ))}
               </div>
 
               {/* This week's shifts — one dropdown per day */}
@@ -574,52 +487,6 @@ export default function StaffPanel({
                 </div>
               )}
 
-              {/* Recurring leave */}
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
-                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
-                  Recurring days off · auto-applied to new weeks
-                </div>
-                <div className="grid grid-cols-7 gap-2">
-                  {DAYS.map((d) => {
-                    const t = recurringLeaves[s.id]?.[d];
-                    return (
-                      <label
-                        key={d}
-                        className="flex flex-col items-stretch gap-1 text-center"
-                        title={`${DAYS_LONG[d]} · recurring leave reason`}
-                      >
-                        <span className="font-mono text-[12px] tracking-widest uppercase text-ink-soft">
-                          {d}
-                        </span>
-                        <select
-                          value={t ?? ""}
-                          onChange={(e) =>
-                            setRec(
-                              s.id,
-                              d,
-                              e.target.value === ""
-                                ? null
-                                : (e.target.value as LeaveType)
-                            )
-                          }
-                          className={`select-input text-[13px] ${
-                            t ? "text-sage" : "text-ink-soft"
-                          }`}
-                        >
-                          <option value="">— working —</option>
-                          {(Object.keys(LEAVE_LABELS) as LeaveType[]).map(
-                            (k) => (
-                              <option key={k} value={k}>
-                                {LEAVE_LABELS[k]}
-                              </option>
-                            )
-                          )}
-                        </select>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
             </article>
           );
         })}
