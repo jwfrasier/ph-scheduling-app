@@ -1,8 +1,8 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import {
   DAYS,
-  DEFAULT_RATE,
   LEAVE_LABELS,
   LeaveType,
   LeavesMap,
@@ -15,6 +15,9 @@ import {
   staffPay,
   uid,
 } from "../lib/data";
+import StaffAddModal from "./StaffAddModal";
+
+type PayFilter = "all" | "auto" | "manual";
 
 export default function StaffPanel({
   staff,
@@ -27,6 +30,7 @@ export default function StaffPanel({
   setManualPay,
   setLeaves,
   setRecurringLeaves,
+  notify,
 }: {
   staff: Staff[];
   schedule: Schedule;
@@ -38,7 +42,13 @@ export default function StaffPanel({
   setManualPay: (next: ManualPayMap) => void;
   setLeaves: (next: LeavesMap) => void;
   setRecurringLeaves: (next: RecurringLeavesMap) => void;
+  notify?: (msg: string) => void;
 }) {
+  const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState("");
+  const [payFilter, setPayFilter] = useState<PayFilter>("all");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
   function update<K extends keyof Staff>(id: string, key: K, value: Staff[K]) {
     setStaff(staff.map((s) => (s.id === id ? { ...s, [key]: value } : s)));
   }
@@ -46,7 +56,9 @@ export default function StaffPanel({
     setManualPay({ ...manualPay, [id]: val });
   }
   function remove(id: string) {
-    if (!confirm("Remove this caregiver and clear their shifts?")) return;
+    const target = staff.find((s) => s.id === id);
+    if (!target) return;
+    if (!confirm(`Remove ${target.name} and clear their shifts?`)) return;
     setStaff(staff.filter((s) => s.id !== id));
     const next = { ...schedule };
     delete next[id];
@@ -60,9 +72,14 @@ export default function StaffPanel({
     const nextRec = { ...recurringLeaves };
     delete nextRec[id];
     setRecurringLeaves(nextRec);
+    notify?.(`Removed ${target.name}`);
   }
 
-  function setRec(id: string, day: typeof DAYS[number], type: LeaveType | null) {
+  function setRec(
+    id: string,
+    day: (typeof DAYS)[number],
+    type: LeaveType | null
+  ) {
     const row = { ...(recurringLeaves[id] ?? {}) };
     if (type === null) delete row[day];
     else row[day] = type;
@@ -70,49 +87,101 @@ export default function StaffPanel({
     if (Object.keys(row).length === 0) delete next[id];
     setRecurringLeaves(next);
   }
-  function add() {
+
+  function confirmAdd(s: Omit<Staff, "id">, manualPayAmount: number) {
     const id = uid();
-    setStaff([
-      ...staff,
-      {
-        id,
-        name: "New caregiver",
-        role: "Role · schedule",
-        rate: DEFAULT_RATE,
-        manual: false,
-      },
-    ]);
+    const newStaff: Staff = { ...s, id };
+    // Prepend so newest appears at the top
+    setStaff([newStaff, ...staff]);
+    if (newStaff.manual && manualPayAmount > 0) {
+      setManualPay({ ...manualPay, [id]: manualPayAmount });
+    }
+    setAdding(false);
+    setHighlightId(id);
+    setTimeout(() => setHighlightId(null), 2500);
+    notify?.(`Added ${newStaff.name}`);
   }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return staff.filter((s) => {
+      if (payFilter === "auto" && s.manual) return false;
+      if (payFilter === "manual" && !s.manual) return false;
+      if (q) {
+        const hay = `${s.name} ${s.role}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [staff, search, payFilter]);
 
   return (
     <section className="pt-10 rise">
       <div className="flex items-baseline gap-4 mb-6">
         <h2 className="font-display text-3xl md:text-4xl">Staff</h2>
         <span className="flex-1 h-px bg-ink/20 ml-4" />
-        <button onClick={add} className="action-btn" aria-label="Add caregiver">
-          + add
+        <button
+          onClick={() => setAdding(true)}
+          className="action-btn"
+          aria-label="Add caregiver"
+        >
+          + add caregiver
         </button>
       </div>
 
+      <div className="staff-filter-bar">
+        <input
+          className="staff-filter-input"
+          placeholder="Search by name or role…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div className="staff-filter-segment" role="tablist" aria-label="Pay filter">
+          {(["all", "auto", "manual"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setPayFilter(f)}
+              className={`staff-filter-chip ${payFilter === f ? "is-active" : ""}`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <span className="staff-filter-count">
+          {filtered.length} of {staff.length}
+        </span>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {staff.map((s) => {
+        {filtered.length === 0 && (
+          <div className="col-span-full font-mono text-[12px] tracking-widest uppercase text-ink-soft py-8 text-center border border-dashed border-ink/20">
+            No caregivers match the current filter
+          </div>
+        )}
+        {filtered.map((s) => {
           const c = shiftCount(schedule, s.id);
           const pay = staffPay(s, schedule, manualPay, leaves);
+          const isNew = s.id === highlightId;
           return (
             <article
               key={s.id}
-              className="bg-paper-deep/35 border border-ink/20 p-5 relative"
+              className={`bg-paper-deep/35 border border-ink/20 p-5 relative ${
+                isNew ? "staff-card-new" : ""
+              }`}
             >
+              {isNew && <span className="staff-card-badge">just added</span>}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <input
                     className="staff-name-input"
                     value={s.name}
+                    title="Click to edit"
                     onChange={(e) => update(s.id, "name", e.target.value)}
                   />
                   <input
                     className="staff-role-input"
                     value={s.role}
+                    title="Click to edit"
                     onChange={(e) => update(s.id, "role", e.target.value)}
                   />
                 </div>
@@ -126,7 +195,7 @@ export default function StaffPanel({
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[13px]">
-                <div>
+                <label className="cursor-text" title="Click to edit rate">
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Rate / shift
                   </div>
@@ -144,7 +213,7 @@ export default function StaffPanel({
                       className="amount-input"
                     />
                   </div>
-                </div>
+                </label>
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Shifts / wk
@@ -161,7 +230,7 @@ export default function StaffPanel({
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between gap-3">
+              <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between gap-3 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
@@ -174,7 +243,7 @@ export default function StaffPanel({
                   </span>
                 </label>
                 {s.manual ? (
-                  <div className="flex items-baseline gap-1">
+                  <label className="flex items-baseline gap-1 cursor-text" title="Click to edit amount">
                     <span className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
                       amount
                     </span>
@@ -187,7 +256,7 @@ export default function StaffPanel({
                       onChange={(e) => setPay(s.id, Number(e.target.value))}
                       className="amount-input max-w-[110px]"
                     />
-                  </div>
+                  </label>
                 ) : (
                   <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
                     auto · {c} × {pesos(s.rate)}
@@ -222,7 +291,7 @@ export default function StaffPanel({
                                 : (e.target.value as LeaveType)
                             )
                           }
-                          className={`select-input text-[14px] ${
+                          className={`select-input text-[13px] ${
                             t ? "text-sage" : "text-ink-soft"
                           }`}
                         >
@@ -245,6 +314,13 @@ export default function StaffPanel({
           );
         })}
       </div>
+
+      {adding && (
+        <StaffAddModal
+          onCancel={() => setAdding(false)}
+          onConfirm={confirmAdd}
+        />
+      )}
     </section>
   );
 }

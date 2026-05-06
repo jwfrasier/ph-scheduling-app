@@ -617,6 +617,7 @@ export default function Home() {
             setManualPay={setManualPay}
             setLeaves={setLeaves}
             setRecurringLeaves={setRecurringLeaves}
+            notify={flashToast}
           />
         )}
         {tab === "payroll" && (

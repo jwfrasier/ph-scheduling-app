@@ -33,6 +33,7 @@ function setup(overrides: Partial<Parameters<typeof StaffPanel>[0]> = {}) {
     setManualPay,
     setLeaves,
     setRecurringLeaves,
+    notify: vi.fn(),
     ...overrides,
   };
   render(<StaffPanel {...props} />);
@@ -57,12 +58,23 @@ describe("<StaffPanel />", () => {
     expect(t.name).toBe("Tessa");
   });
 
-  it("clicking + add caregiver appends a fresh staff", () => {
+  it("clicking + add caregiver opens the modal", () => {
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "Add caregiver" }));
+    expect(screen.getAllByText(/Add caregiver/).length).toBeGreaterThan(0);
+    expect(screen.getByPlaceholderText(/e.g., Maria/)).toBeInTheDocument();
+  });
+
+  it("submitting the modal prepends the new caregiver", () => {
     const { setStaff } = setup();
-    fireEvent.click(screen.getByRole("button", { name: /add caregiver/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Add caregiver" }));
+    fireEvent.change(screen.getByPlaceholderText(/e.g., Maria/), {
+      target: { value: "Cora" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "add caregiver" }));
     const next = setStaff.mock.calls[0][0] as Staff[];
     expect(next.length).toBe(DEFAULT_STAFF.length + 1);
-    expect(next[next.length - 1].name).toBe("New caregiver");
+    expect(next[0].name).toBe("Cora"); // newest at top
   });
 
   it("clicking remove drops the caregiver and clears their schedule entry", () => {
