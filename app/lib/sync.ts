@@ -7,7 +7,8 @@ export type SyncStatus = "local" | "syncing" | "synced" | "error" | "off";
 let kvAvailable: boolean | null = null;
 
 export async function tryRemoteLoad(): Promise<AppState | null> {
-  if (kvAvailable === false) return null;
+  // 503 = KV not configured; only that response should disable for the session.
+  // Transient errors (5xx, network) should NOT lock the session into local-only.
   try {
     const res = await fetch("/api/state", { cache: "no-store" });
     if (res.status === 503) {
@@ -15,7 +16,7 @@ export async function tryRemoteLoad(): Promise<AppState | null> {
       return null;
     }
     if (!res.ok) {
-      kvAvailable = false;
+      // Transient — don't disable, just return null this time.
       return null;
     }
     const body = (await res.json()) as { ok: boolean; state: unknown };
@@ -23,7 +24,7 @@ export async function tryRemoteLoad(): Promise<AppState | null> {
     if (!body.state) return null;
     return parseState(body.state);
   } catch {
-    kvAvailable = false;
+    // Network error — transient, leave kvAvailable as is.
     return null;
   }
 }
@@ -40,10 +41,14 @@ export async function tryRemoteSave(state: AppState): Promise<SyncStatus> {
       kvAvailable = false;
       return "local";
     }
-    if (!res.ok) return "error";
+    if (!res.ok) {
+      // Transient save failure — keep session online so retry works.
+      return "error";
+    }
     kvAvailable = true;
     return "synced";
   } catch {
+    // Network glitch — don't permanently flag offline.
     return "error";
   }
 }

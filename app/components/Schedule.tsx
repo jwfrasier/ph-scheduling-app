@@ -230,7 +230,7 @@ export default function SchedulePanel({
                       {s.name}
                       {s.manual && (
                         <span className="ml-2 align-middle inline-block font-mono text-[13px] tracking-[0.2em] uppercase text-terracotta border border-terracotta/60 px-1.5 py-0.5 -translate-y-0.5">
-                          manual
+                          salaried
                         </span>
                       )}
                     </div>
