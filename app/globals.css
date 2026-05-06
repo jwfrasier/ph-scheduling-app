@@ -124,8 +124,9 @@ input.amount-input {
   background: transparent;
   border: none;
   border-bottom: 1px dashed var(--ink);
-  padding: 2px 4px;
+  padding: 4px 4px;
   font-family: var(--font-mono);
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
   color: var(--ink);
   width: 100%;
@@ -204,10 +205,10 @@ input.amount-input:focus {
 
 .action-btn {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 6px 12px;
+  padding: 7px 13px;
   border: 1px solid var(--ink);
   background: var(--paper);
   color: var(--ink);
@@ -222,10 +223,10 @@ input.amount-input:focus {
 
 .action-btn-ghost {
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  padding: 6px 12px;
+  padding: 7px 13px;
   border: 1px dashed var(--ink-soft);
   background: transparent;
   color: var(--ink-soft);
@@ -316,8 +317,8 @@ input.amount-input:focus {
 
 .violations-detail {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: 13px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -325,8 +326,8 @@ input.amount-input:focus {
 .violations-toggle {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--terracotta);
   background: transparent;
@@ -341,8 +342,8 @@ input.amount-input:focus {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
 .violations-list li {
@@ -357,12 +358,12 @@ input.amount-input:focus {
 .violations-tag {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: 11px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   background: var(--ink);
   color: var(--paper);
-  padding: 1px 6px;
+  padding: 2px 7px;
   margin-right: 8px;
   vertical-align: middle;
 }
@@ -435,11 +436,11 @@ input.amount-input:focus {
 
 .cell-editor-btn {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.05em;
+  font-size: 13px;
+  letter-spacing: 0.04em;
   background: transparent;
   border: 1px solid rgba(28, 26, 23, 0.3);
-  padding: 6px 10px;
+  padding: 8px 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -471,9 +472,9 @@ input.amount-input:focus {
   margin-top: 8px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(28, 26, 23, 0.25);
-  padding: 8px 10px;
+  padding: 10px 12px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 15px;
   color: var(--ink);
   outline: none;
   resize: vertical;
@@ -662,11 +663,11 @@ kbd {
 .time-input,
 .select-input {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 14px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--ink);
-  padding: 4px 6px;
+  padding: 6px 6px;
   color: var(--ink);
   width: 100%;
   outline: none;

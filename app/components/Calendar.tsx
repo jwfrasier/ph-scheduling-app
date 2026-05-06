@@ -197,20 +197,20 @@ export default function CalendarPanel({
                   {d}
                 </span>
                 <span
-                  className={`font-mono text-[10px] tabnum tracking-widest ${
+                  className={`font-mono text-[14px] tabnum tracking-widest ${
                     active ? "text-ink" : "text-ink-soft/80"
                   }`}
                 >
                   {dates[d].getDate()}
                 </span>
               </div>
-              <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-1.5">
+              <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-1.5">
                 {fmtDayDate(dates[d])}
                 {isToday && (
                   <span className="ml-1.5 text-terracotta">· today</span>
                 )}
               </div>
-              <div className="font-mono text-[11px] mt-2 tabnum">
+              <div className="font-mono text-[13px] mt-2 tabnum">
                 <span className={dN === r.D ? "text-ochre" : "text-terracotta"}>
                   {dN}/{r.D}D
                 </span>
@@ -224,7 +224,7 @@ export default function CalendarPanel({
               )}
               {overridden && (
                 <span
-                  className="absolute bottom-1 right-1 font-mono text-[8px] tracking-widest uppercase text-sage"
+                  className="absolute bottom-1 right-1 font-mono text-[11px] tracking-widest uppercase text-sage"
                   title="Custom for this day"
                 >
                   ✶
@@ -244,7 +244,7 @@ export default function CalendarPanel({
               · {fmtOrdinalDate(dates[day])}
             </span>
           </div>
-          <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft mt-2">
+          <div className="font-mono text-[14px] tracking-widest uppercase text-ink-soft mt-2">
             day &nbsp;{eff.D.start}–{eff.D.end} · {eff.D.hours}h &nbsp;·&nbsp;
             night &nbsp;{eff.N.start}–{eff.N.end} · {eff.N.hours}h
             {dayHasOverride && (
@@ -327,7 +327,7 @@ export default function CalendarPanel({
         />
       </div>
 
-      <p className="mt-6 font-mono text-[10px] tracking-widest uppercase text-ink-soft">
+      <p className="mt-6 font-mono text-[14px] tracking-widest uppercase text-ink-soft">
         {touch ? "tap chip · long-press to edit" : "drag chip · long-press to edit"}
       </p>
 
@@ -416,7 +416,7 @@ function ShiftZone({
     >
       <header className="flex items-start justify-between border-b border-ink/15 pb-3">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft">
             {kind === "D" ? "Daytime" : "Overnight"}
           </div>
           <h3 className="font-display text-2xl mt-0.5">{label}</h3>
@@ -428,15 +428,15 @@ function ShiftZone({
             </span>
             <span className="text-ink/30 text-base">/{required}</span>
           </div>
-          <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-1">
+          <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-1">
             on duty
           </div>
         </div>
       </header>
 
-      <div className="mt-3 grid grid-cols-4 gap-2 font-mono text-[11px]">
+      <div className="mt-3 grid grid-cols-4 gap-2 font-mono text-[13px]">
         <label className="block">
-          <span className="block text-[9px] uppercase tracking-widest text-ink-soft mb-1">
+          <span className="block text-[13px] uppercase tracking-widest text-ink-soft mb-1">
             Start
           </span>
           <input
@@ -447,7 +447,7 @@ function ShiftZone({
           />
         </label>
         <label className="block">
-          <span className="block text-[9px] uppercase tracking-widest text-ink-soft mb-1">
+          <span className="block text-[13px] uppercase tracking-widest text-ink-soft mb-1">
             End
           </span>
           <input
@@ -458,7 +458,7 @@ function ShiftZone({
           />
         </label>
         <label className="block">
-          <span className="block text-[9px] uppercase tracking-widest text-ink-soft mb-1">
+          <span className="block text-[13px] uppercase tracking-widest text-ink-soft mb-1">
             Hours
           </span>
           <input
@@ -472,7 +472,7 @@ function ShiftZone({
           />
         </label>
         <label className="block">
-          <span className="block text-[9px] uppercase tracking-widest text-ink-soft mb-1">
+          <span className="block text-[13px] uppercase tracking-widest text-ink-soft mb-1">
             Required
           </span>
           <input
@@ -487,14 +487,14 @@ function ShiftZone({
         </label>
       </div>
       {(isOverride || requiredOverride) && (
-        <div className="font-mono text-[9px] tracking-widest uppercase text-sage mt-1">
+        <div className="font-mono text-[13px] tracking-widest uppercase text-sage mt-1">
           ✶ override active
         </div>
       )}
 
       <ul className="mt-4 min-h-[120px]">
         {assigned.length === 0 && (
-          <li className="font-mono text-[12px] uppercase tracking-widest text-ink-soft py-6 italic text-center border border-dashed border-ink/20">
+          <li className="font-mono text-[14px] uppercase tracking-widest text-ink-soft py-6 italic text-center border border-dashed border-ink/20">
             {touch ? "tap a chip below to move" : "drop a caregiver here"}
           </li>
         )}
@@ -553,7 +553,7 @@ function LeaveZone({
     >
       <header className="flex items-start justify-between border-b border-ink/15 pb-3">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft">
             Out
           </div>
           <h3 className="font-display text-2xl mt-0.5">On leave</h3>
@@ -562,7 +562,7 @@ function LeaveZone({
           <div className="font-display text-2xl tabnum leading-none text-sage">
             {assigned.length}
           </div>
-          <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-1">
+          <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-1">
             absent
           </div>
         </div>
@@ -570,7 +570,7 @@ function LeaveZone({
 
       <ul className="mt-4 min-h-[120px]">
         {assigned.length === 0 && (
-          <li className="font-mono text-[11px] uppercase tracking-widest text-ink-soft py-6 italic text-center border border-dashed border-ink/15">
+          <li className="font-mono text-[13px] uppercase tracking-widest text-ink-soft py-6 italic text-center border border-dashed border-ink/15">
             no leave entered
           </li>
         )}
@@ -590,7 +590,7 @@ function LeaveZone({
                 <div className="font-display text-base leading-tight truncate">
                   {s.name}
                 </div>
-                <div className="font-mono text-[9px] tracking-wider uppercase text-sage truncate">
+                <div className="font-mono text-[13px] tracking-wider uppercase text-sage truncate">
                   {LEAVE_LABELS[lv.type]}
                   {lv.note && ` · ${lv.note}`}
                 </div>
@@ -601,7 +601,7 @@ function LeaveZone({
                   onChange={(e) =>
                     onLeaveType(s.id, e.target.value as LeaveType)
                   }
-                  className="select-input text-[10px] max-w-[88px]"
+                  className="select-input text-[14px] max-w-[88px]"
                 >
                   {Object.entries(LEAVE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>
@@ -611,7 +611,7 @@ function LeaveZone({
                 </select>
                 <button
                   onClick={() => onEdit(s.id)}
-                  className="opacity-50 hover:opacity-100 font-mono text-[10px] tracking-widest uppercase"
+                  className="opacity-50 hover:opacity-100 font-mono text-[14px] tracking-widest uppercase"
                   title="Edit details"
                 >
                   edit
@@ -665,7 +665,7 @@ function OffZone({
     >
       <header className="flex items-start justify-between border-b border-ink/15 pb-3">
         <div>
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft">
             Off duty
           </div>
           <h3 className="font-display text-2xl mt-0.5">Available</h3>
@@ -674,7 +674,7 @@ function OffZone({
           <div className="font-display text-2xl tabnum leading-none text-ink-soft">
             {assigned.length}
           </div>
-          <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-1">
+          <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-1">
             unscheduled
           </div>
         </div>
@@ -682,7 +682,7 @@ function OffZone({
 
       <ul className="mt-4 min-h-[120px]">
         {assigned.length === 0 && (
-          <li className="font-mono text-[12px] uppercase tracking-widest text-ink-soft py-6 italic text-center">
+          <li className="font-mono text-[14px] uppercase tracking-widest text-ink-soft py-6 italic text-center">
             everyone scheduled
           </li>
         )}
@@ -732,23 +732,23 @@ function DraggableStaff({
             <span className="ml-1 align-middle text-terracotta text-xs">●</span>
           )}
         </div>
-        <div className="font-mono text-[9px] tracking-wider uppercase text-ink-soft truncate">
+        <div className="font-mono text-[13px] tracking-wider uppercase text-ink-soft truncate">
           {staff.role}
         </div>
         {note && (
-          <div className="font-mono text-[10px] text-ink-soft italic truncate mt-0.5">
+          <div className="font-mono text-[14px] text-ink-soft italic truncate mt-0.5">
             {note}
           </div>
         )}
       </div>
       <div className="flex items-center gap-2 pl-2 whitespace-nowrap">
-        <span className="font-mono text-[10px] tabnum text-ink-soft">
+        <span className="font-mono text-[14px] tabnum text-ink-soft">
           <span className={overCap ? "text-terracotta" : ""}>{c}</span>
           <span className="text-ink/30">/{MAX_SHIFTS}</span>
         </span>
         <button
           onClick={onEdit}
-          className="opacity-50 hover:opacity-100 font-mono text-[10px] tracking-widest uppercase"
+          className="opacity-50 hover:opacity-100 font-mono text-[14px] tracking-widest uppercase"
           title="Edit shift, leave, note"
         >
           edit

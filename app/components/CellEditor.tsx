@@ -59,7 +59,7 @@ export default function CellEditor({
             <div className="font-display text-2xl leading-none">
               {staff.name}
             </div>
-            <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft mt-1">
+            <div className="font-mono text-[14px] tracking-widest uppercase text-ink-soft mt-1">
               {DAYS_LONG[day]} · {staff.role}
             </div>
           </div>

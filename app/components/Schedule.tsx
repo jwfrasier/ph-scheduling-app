@@ -152,7 +152,7 @@ export default function SchedulePanel({
         <table className="w-full border-collapse min-w-[920px] schedule-table">
           <thead>
             <tr>
-              <th className="sticky-col sticky-head text-left py-3 pr-4 pl-3 font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft w-[26%]">
+              <th className="sticky-col sticky-head text-left py-3 pr-4 pl-3 font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft w-[26%]">
                 Caregiver
               </th>
               {DAYS.map((d) => {
@@ -167,7 +167,7 @@ export default function SchedulePanel({
                   >
                     <div className="leading-none">{d}</div>
                     <div
-                      className={`font-mono text-[10px] tabnum tracking-wider mt-1 ${
+                      className={`font-mono text-[14px] tabnum tracking-wider mt-1 ${
                         isToday ? "text-terracotta" : "text-ink-soft"
                       }`}
                     >
@@ -176,10 +176,10 @@ export default function SchedulePanel({
                   </th>
                 );
               })}
-              <th className="sticky-head text-right py-3 pl-4 font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft">
+              <th className="sticky-head text-right py-3 pl-4 font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft">
                 Shifts
               </th>
-              <th className="sticky-head text-right py-3 pl-4 pr-3 font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft w-[14%]">
+              <th className="sticky-head text-right py-3 pl-4 pr-3 font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft w-[14%]">
                 Pay
               </th>
             </tr>
@@ -203,12 +203,12 @@ export default function SchedulePanel({
                     <div className="font-display text-xl leading-tight">
                       {s.name}
                       {s.manual && (
-                        <span className="ml-2 align-middle inline-block font-mono text-[9px] tracking-[0.2em] uppercase text-terracotta border border-terracotta/60 px-1.5 py-0.5 -translate-y-0.5">
+                        <span className="ml-2 align-middle inline-block font-mono text-[13px] tracking-[0.2em] uppercase text-terracotta border border-terracotta/60 px-1.5 py-0.5 -translate-y-0.5">
                           manual
                         </span>
                       )}
                     </div>
-                    <div className="font-mono text-[10px] tracking-wider uppercase text-ink-soft mt-0.5">
+                    <div className="font-mono text-[14px] tracking-wider uppercase text-ink-soft mt-0.5">
                       {s.role}
                     </div>
                   </td>
@@ -281,7 +281,7 @@ export default function SchedulePanel({
                       </td>
                     );
                   })}
-                  <td className="text-right pl-4 font-mono tabnum text-sm align-middle">
+                  <td className="text-right pl-4 font-mono tabnum text-base align-middle">
                     <span className={overCap ? "text-terracotta" : "text-ink"}>
                       {count}
                     </span>
@@ -303,7 +303,7 @@ export default function SchedulePanel({
                         />
                       </div>
                     ) : (
-                      <span className="font-mono tabnum text-sm">
+                      <span className="font-mono tabnum text-base">
                         {pesos(staffPay(s, schedule, manualPay, leaves))}
                       </span>
                     )}
@@ -317,7 +317,7 @@ export default function SchedulePanel({
               <td colSpan={8} className="pt-4 pl-3">
                 <div className="deco-rule" />
               </td>
-              <td className="pt-4 text-right font-mono text-[10px] tracking-[0.2em] uppercase text-ink-soft">
+              <td className="pt-4 text-right font-mono text-[14px] tracking-[0.2em] uppercase text-ink-soft">
                 total
               </td>
               <td className="pt-4 pl-4 pr-3 text-right font-display text-2xl">
@@ -328,7 +328,7 @@ export default function SchedulePanel({
         </table>
       </div>
 
-      <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-ink-soft">
+      <p className="mt-4 font-mono text-[14px] tracking-widest uppercase text-ink-soft">
         click cycles · long-press to edit
       </p>
 

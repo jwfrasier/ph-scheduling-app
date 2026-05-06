@@ -390,7 +390,7 @@ export default function Home() {
               <span className="italic text-terracotta"> &amp; </span>
               Payroll
             </h1>
-            <div className="mt-3 font-mono text-[11px] tracking-[0.2em] uppercase text-ink-soft">
+            <div className="mt-3 font-mono text-[13px] tracking-[0.2em] uppercase text-ink-soft">
               <span className="text-ink">Week of {weekLabel}</span>
               {!isCurrentWeek && (
                 <span className="text-terracotta ml-2">· archived</span>
@@ -399,7 +399,7 @@ export default function Home() {
           </div>
 
           <div className="col-span-12 md:col-span-5 rise delay-2">
-            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[12px] font-mono tracking-wider uppercase text-ink-soft">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-[14px] font-mono tracking-wider uppercase text-ink-soft">
               <div className="flex justify-between border-b border-ink/20 py-2">
                 <span>Day</span>
                 <span className="text-ink">
@@ -447,7 +447,7 @@ export default function Home() {
                     }`}
                   >
                     <span
-                      className={`font-mono text-[10px] tracking-[0.25em] uppercase ${
+                      className={`font-mono text-[14px] tracking-[0.25em] uppercase ${
                         active ? "text-terracotta" : "text-ink-soft/70"
                       }`}
                     >
@@ -456,7 +456,7 @@ export default function Home() {
                     <span className="font-display text-[20px] md:text-[24px] leading-none">
                       {tt.label}
                     </span>
-                    <span className="font-mono text-[10px] tracking-widest uppercase text-ink-soft/70 hidden md:inline">
+                    <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft/70 hidden md:inline">
                       {counts[tt.id]}
                     </span>
                     <span
@@ -565,18 +565,18 @@ export default function Home() {
                 {weekLabel}
               </div>
               {!isCurrentWeek && (
-                <span className="font-mono text-[10px] tracking-widest uppercase text-terracotta">
+                <span className="font-mono text-[14px] tracking-widest uppercase text-terracotta">
                   archived
                 </span>
               )}
               {isCurrentWeek && (
-                <span className="font-mono text-[10px] tracking-widest uppercase text-sage">
+                <span className="font-mono text-[14px] tracking-widest uppercase text-sage">
                   · current
                 </span>
               )}
               {week.modifiedAt && (
                 <span
-                  className="font-mono text-[10px] tracking-widest uppercase text-ink-soft hidden md:inline"
+                  className="font-mono text-[14px] tracking-widest uppercase text-ink-soft hidden md:inline"
                   title={fmtTimestamp(new Date(week.modifiedAt))}
                 >
                   · modified {timeAgo(week.modifiedAt)}
@@ -646,7 +646,7 @@ export default function Home() {
         )}
       </div>
 
-      <footer className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 py-6 border-t border-ink/20 font-mono text-[10px] tracking-widest uppercase text-ink-soft text-right">
+      <footer className="screen-only px-5 sm:px-6 md:px-12 lg:px-20 py-6 border-t border-ink/20 font-mono text-[14px] tracking-widest uppercase text-ink-soft text-right">
         {archivedCount} week{archivedCount === 1 ? "" : "s"} on file
       </footer>
 
@@ -666,7 +666,7 @@ export default function Home() {
                 <div className="font-display text-2xl leading-none">
                   Keyboard
                 </div>
-                <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft mt-1">
+                <div className="font-mono text-[14px] tracking-widest uppercase text-ink-soft mt-1">
                   Shortcuts &amp; tips
                 </div>
               </div>
@@ -674,7 +674,7 @@ export default function Home() {
                 ×
               </button>
             </header>
-            <ul className="cell-editor-section font-mono text-[12px] leading-loose">
+            <ul className="cell-editor-section font-mono text-[14px] leading-loose">
               <li><kbd>←</kbd> / <kbd>→</kbd> &nbsp; previous / next week</li>
               <li><kbd>T</kbd> &nbsp; jump to this week</li>
               <li><kbd>1</kbd>–<kbd>4</kbd> &nbsp; switch tabs (schedule, calendar, staff, payroll)</li>
@@ -684,7 +684,7 @@ export default function Home() {
               <li><kbd>?</kbd> &nbsp; open this help</li>
               <li><kbd>Esc</kbd> &nbsp; close</li>
             </ul>
-            <p className="cell-editor-section font-mono text-[11px] leading-relaxed text-ink-soft">
+            <p className="cell-editor-section font-mono text-[13px] leading-relaxed text-ink-soft">
               Long-press any cell on the schedule, right-click, or
               shift-click to open the editor for shift, leave, and notes.
             </p>
@@ -735,7 +735,7 @@ function SyncDot({ status }: { status: SyncStatus }) {
         className="inline-block w-2 h-2 rounded-full align-middle"
         style={{ background: color }}
       />
-      <span className="text-[10px]">{label}</span>
+      <span className="text-[14px]">{label}</span>
     </span>
   );
 }

@@ -27,7 +27,7 @@ export default async function SharePage({
     return (
       <main className="min-h-screen px-6 md:px-12 py-16 text-ink">
         <div className="max-w-xl">
-          <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-terracotta">
+          <div className="font-mono text-[13px] tracking-[0.2em] uppercase text-terracotta">
             Bad share link
           </div>
           <h1 className="font-display text-5xl mt-4">Couldn&rsquo;t read that</h1>
@@ -48,13 +48,13 @@ export default async function SharePage({
   return (
     <main className="min-h-screen px-6 md:px-12 lg:px-20 py-10 md:py-14 text-ink">
       <header className="pb-8 border-b border-ink/30">
-        <div className="font-mono text-[11px] tracking-[0.2em] uppercase text-terracotta">
+        <div className="font-mono text-[13px] tracking-[0.2em] uppercase text-terracotta">
           Read-only · shared roster
         </div>
         <h1 className="font-display text-[clamp(2.6rem,7vw,5.4rem)] leading-[0.9] mt-3">
           Week of {weekLabel}
         </h1>
-        <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft mt-3">
+        <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-3">
           Day {shiftTimes.D.start}–{shiftTimes.D.end} · Night {shiftTimes.N.start}–
           {shiftTimes.N.end} · {staff.length} caregivers
         </div>
@@ -76,7 +76,7 @@ export default async function SharePage({
                 <div className="font-display text-2xl leading-none">
                   {DAYS_LONG[d]}
                 </div>
-                <div className="font-mono text-[10px] tracking-widest uppercase text-ink-soft mt-1">
+                <div className="font-mono text-[14px] tracking-widest uppercase text-ink-soft mt-1">
                   {fmtDayDate(dates[d])}
                 </div>
               </header>
@@ -104,10 +104,10 @@ export default async function SharePage({
 
               {onLeave.length > 0 && (
                 <div className="mt-3 pt-2 border-t border-dashed border-ink/15">
-                  <div className="font-mono text-[9px] tracking-widest uppercase text-sage">
+                  <div className="font-mono text-[13px] tracking-widest uppercase text-sage">
                     Out
                   </div>
-                  <ul className="text-[12px] leading-tight mt-1">
+                  <ul className="text-[14px] leading-tight mt-1">
                     {onLeave.map((s) => {
                       const lv = week.leaves[s.id]![d]!;
                       return (
@@ -124,7 +124,7 @@ export default async function SharePage({
         })}
       </section>
 
-      <p className="mt-8 font-mono text-[10px] tracking-widest uppercase text-ink-soft max-w-prose">
+      <p className="mt-8 font-mono text-[14px] tracking-widest uppercase text-ink-soft max-w-prose">
         This is a read-only snapshot. The live schedule may have changed since
         this link was created.
       </p>
@@ -149,12 +149,12 @@ function Section({
   return (
     <div className="mb-3">
       <div className="flex items-baseline justify-between gap-1">
-        <span className="font-mono text-[10px] tracking-widest uppercase text-ink-soft">
+        <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft">
           {label}
         </span>
-        <span className="font-mono text-[9px] text-ink-soft">{time}</span>
+        <span className="font-mono text-[13px] text-ink-soft">{time}</span>
         <span
-          className={`font-mono text-[10px] tabnum ${
+          className={`font-mono text-[14px] tabnum ${
             ok ? "" : "text-terracotta"
           }`}
         >
@@ -163,7 +163,7 @@ function Section({
       </div>
       <ul className="text-[13px] leading-tight mt-1">
         {rows.length === 0 && (
-          <li className="text-ink-soft italic font-mono text-[11px]">
+          <li className="text-ink-soft italic font-mono text-[13px]">
             unstaffed
           </li>
         )}
@@ -171,7 +171,7 @@ function Section({
           <li key={i}>
             {r.name}
             {r.note && (
-              <span className="text-ink-soft font-mono text-[10px] ml-1">
+              <span className="text-ink-soft font-mono text-[14px] ml-1">
                 · {r.note}
               </span>
             )}

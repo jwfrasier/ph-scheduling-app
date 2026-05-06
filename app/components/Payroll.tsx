@@ -41,7 +41,7 @@ export default function PayrollPanel({
         </div>
 
         <div className="mt-8">
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft mb-3">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft mb-3">
             Auto · shift-based
           </div>
           <ul>
@@ -55,7 +55,7 @@ export default function PayrollPanel({
                   className="flex items-baseline py-1.5 border-b border-ink/10"
                 >
                   <span className="font-display text-lg">{s.name}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-ink-soft ml-3">
+                  <span className="font-mono text-[14px] uppercase tracking-widest text-ink-soft ml-3">
                     {c} × {pesos(s.rate)}
                   </span>
                   <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
@@ -64,7 +64,7 @@ export default function PayrollPanel({
               );
             })}
             {auto.length === 0 && (
-              <li className="text-ink-soft italic font-mono text-sm py-2">
+              <li className="text-ink-soft italic font-mono text-base py-2">
                 No auto-paid staff
               </li>
             )}
@@ -72,7 +72,7 @@ export default function PayrollPanel({
         </div>
 
         <div className="mt-8">
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft mb-3">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft mb-3">
             Manual · senior
           </div>
           <ul>
@@ -82,7 +82,7 @@ export default function PayrollPanel({
                 className="flex items-baseline py-2 border-b border-ink/10"
               >
                 <span className="font-display text-lg">{s.name}</span>
-                <span className="font-mono text-[10px] uppercase tracking-widest text-ink-soft ml-3">
+                <span className="font-mono text-[14px] uppercase tracking-widest text-ink-soft ml-3">
                   {s.role}
                 </span>
                 <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
@@ -100,7 +100,7 @@ export default function PayrollPanel({
               </li>
             ))}
             {manual.length === 0 && (
-              <li className="text-ink-soft italic font-mono text-sm py-2">
+              <li className="text-ink-soft italic font-mono text-base py-2">
                 No manual entries
               </li>
             )}
@@ -110,19 +110,19 @@ export default function PayrollPanel({
 
       <aside className="col-span-12 md:col-span-5 md:pl-10 md:border-l md:border-ink/20">
         <div className="md:sticky md:top-[140px]">
-          <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-ink-soft mb-4">
+          <div className="font-mono text-[14px] tracking-[0.25em] uppercase text-ink-soft mb-4">
             Settlement
           </div>
           <dl className="space-y-1">
             <div className="flex items-baseline">
-              <dt className="font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+              <dt className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
                 Auto
               </dt>
               <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />
               <dd className="font-mono tabnum text-base">{pesos(t.auto)}</dd>
             </div>
             <div className="flex items-baseline">
-              <dt className="font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+              <dt className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
                 Manual
               </dt>
               <span className="flex-1 mx-3 border-b border-dotted border-ink/30 translate-y-[-3px]" />

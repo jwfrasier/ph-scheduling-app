@@ -118,16 +118,16 @@ export default function StaffPanel({
                 </div>
                 <button
                   onClick={() => remove(s.id)}
-                  className="opacity-40 hover:opacity-100 hover:text-terracotta font-mono text-[10px] tracking-widest uppercase"
+                  className="opacity-40 hover:opacity-100 hover:text-terracotta font-mono text-[14px] tracking-widest uppercase"
                   title="Remove caregiver"
                 >
                   remove
                 </button>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[11px]">
+              <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[13px]">
                 <div>
-                  <div className="text-[9px] tracking-widest uppercase text-ink-soft">
+                  <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Rate / shift
                   </div>
                   <div className="flex items-baseline gap-1 mt-1">
@@ -146,13 +146,13 @@ export default function StaffPanel({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[9px] tracking-widest uppercase text-ink-soft">
+                  <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Shifts / wk
                   </div>
                   <div className="font-display text-xl tabnum mt-0.5">{c}</div>
                 </div>
                 <div>
-                  <div className="text-[9px] tracking-widest uppercase text-ink-soft">
+                  <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     This week
                   </div>
                   <div className="font-display text-xl tabnum mt-0.5 text-terracotta-deep">
@@ -169,13 +169,13 @@ export default function StaffPanel({
                     onChange={(e) => update(s.id, "manual", e.target.checked)}
                     className="check"
                   />
-                  <span className="font-mono text-[10px] tracking-[0.2em] uppercase">
+                  <span className="font-mono text-[14px] tracking-[0.2em] uppercase">
                     Manual pay
                   </span>
                 </label>
                 {s.manual ? (
                   <div className="flex items-baseline gap-1">
-                    <span className="font-mono text-[11px] uppercase tracking-widest text-ink-soft">
+                    <span className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
                       amount
                     </span>
                     <span className="font-mono text-ink/40">₱</span>
@@ -189,14 +189,14 @@ export default function StaffPanel({
                     />
                   </div>
                 ) : (
-                  <span className="font-mono text-[10px] tracking-widest uppercase text-ink-soft italic">
+                  <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
                     auto · {c} × {pesos(s.rate)}
                   </span>
                 )}
               </div>
 
               <div className="mt-3 pt-3 border-t border-dashed border-ink/20">
-                <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mb-2">
+                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
                   Recurring leave
                 </div>
                 <div className="grid grid-cols-7 gap-1">
@@ -208,7 +208,7 @@ export default function StaffPanel({
                         className="flex flex-col items-stretch gap-1 text-center"
                         title={`${d} · recurring leave`}
                       >
-                        <span className="font-mono text-[9px] tracking-widest uppercase text-ink-soft">
+                        <span className="font-mono text-[13px] tracking-widest uppercase text-ink-soft">
                           {d}
                         </span>
                         <select
@@ -222,7 +222,7 @@ export default function StaffPanel({
                                 : (e.target.value as LeaveType)
                             )
                           }
-                          className={`select-input text-[10px] ${
+                          className={`select-input text-[14px] ${
                             t ? "text-sage" : "text-ink-soft"
                           }`}
                         >
@@ -237,7 +237,7 @@ export default function StaffPanel({
                     );
                   })}
                 </div>
-                <div className="font-mono text-[9px] tracking-widest uppercase text-ink-soft mt-2">
+                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-2">
                   Applied to new weeks
                 </div>
               </div>
