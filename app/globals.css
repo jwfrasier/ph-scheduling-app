@@ -1215,6 +1215,16 @@ select.shift-select.is-blocked {
   transform: translateY(-1px);
 }
 
+.staff-day-toggle.is-static {
+  cursor: default;
+  text-align: center;
+  padding: 8px 4px;
+}
+
+.staff-day-toggle.is-static:hover {
+  transform: none;
+}
+
 .staff-restore-banner {
   display: flex;
   flex-wrap: wrap;

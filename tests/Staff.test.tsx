@@ -134,28 +134,22 @@ describe("<StaffPanel />", () => {
     expect(next.find((s) => s.id === "teng")?.rate).toBe(600);
   });
 
-  it("changing a shift dropdown to Off clears that day", () => {
-    const { setSchedule } = setup();
+  it("does not show per-day shift selectors on the staff page", () => {
+    setup();
     const card = getCard("Mary Ann");
     const shiftSelects = within(card)
-      .getAllByRole("combobox")
+      .queryAllByRole("combobox")
       .filter((el) => el.className.includes("shift-select"));
-    expect(shiftSelects).toHaveLength(7);
-    fireEvent.change(shiftSelects[0], { target: { value: "" } }); // Sun → Off
-    expect(setSchedule).toHaveBeenCalled();
-    const sched = setSchedule.mock.calls[0][0] as Schedule;
-    expect(sched.maryann?.Sun).toBeUndefined();
+    expect(shiftSelects).toHaveLength(0);
   });
 
-  it("changing a shift dropdown to Night sets that day to N", () => {
-    const { setSchedule } = setup();
+  it("shows the available-days constraint as static pills outside edit mode", () => {
+    setup();
     const card = getCard("Tessie");
-    const shiftSelects = within(card)
-      .getAllByRole("combobox")
-      .filter((el) => el.className.includes("shift-select"));
-    fireEvent.change(shiftSelects[0], { target: { value: "N" } }); // Sun → Night
-    const sched = setSchedule.mock.calls[0][0] as Schedule;
-    expect(sched.tessie?.Sun).toBe("N");
+    const dayPills = within(card)
+      .getAllByText(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)$/);
+    // Available-days pill row
+    expect(dayPills.length).toBeGreaterThanOrEqual(7);
   });
 
   it("toggling an available-day in edit mode commits allowedDays on save", () => {

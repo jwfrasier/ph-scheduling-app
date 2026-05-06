@@ -9,7 +9,6 @@ import {
   ManualPayMap,
   RecurringLeavesMap,
   Schedule,
-  ShiftKind,
   Staff,
   pesos,
   shiftCount,
@@ -82,16 +81,6 @@ export default function StaffPanel({
     // If full week is allowed again, clear the constraint
     const nextOrNull = next.length === 7 ? null : next;
     setDraft({ ...draft, allowedDays: nextOrNull });
-  }
-  function setShiftValue(
-    staffId: string,
-    day: Day,
-    next: ShiftKind | null
-  ) {
-    const row = { ...(schedule[staffId] ?? {}) };
-    if (next === null) delete row[day];
-    else row[day] = next;
-    setSchedule({ ...schedule, [staffId]: row });
   }
   function cancelEdit() {
     setEditingId(null);
@@ -399,71 +388,25 @@ export default function StaffPanel({
                   ))}
               </div>
 
-              {/* This week's shifts — one dropdown per day */}
+              {/* Available days — always visible; clickable only in edit mode */}
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
-                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
-                  This week&rsquo;s shifts
+                <div className="flex items-baseline justify-between mb-2">
+                  <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft">
+                    Available days
+                  </div>
+                  <div className="font-mono text-[11px] tracking-widest uppercase text-ink-soft/70">
+                    {editing
+                      ? "click to toggle"
+                      : "edit to change · shifts on schedule tab"}
+                  </div>
                 </div>
                 <div className="grid grid-cols-7 gap-2">
                   {DAYS.map((d) => {
-                    const k = (schedule[s.id]?.[d] ?? null) as ShiftKind | null;
-                    const blocked =
-                      s.allowedDays && !s.allowedDays.includes(d);
-                    const cls =
-                      k === "D"
-                        ? "is-day"
-                        : k === "N"
-                        ? "is-night"
-                        : "is-off";
-                    return (
-                      <label
-                        key={d}
-                        className="flex flex-col gap-1 text-center"
-                        title={`${DAYS_LONG[d]} · pick a shift`}
-                      >
-                        <span className="font-mono text-[12px] tracking-widest uppercase text-ink-soft">
-                          {d}
-                        </span>
-                        <select
-                          value={k ?? ""}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            setShiftValue(
-                              s.id,
-                              d,
-                              v === "D" ? "D" : v === "N" ? "N" : null
-                            );
-                          }}
-                          className={`shift-select ${cls} ${
-                            blocked ? "is-blocked" : ""
-                          }`}
-                        >
-                          <option value="">Off</option>
-                          <option value="D">Day</option>
-                          <option value="N">Night</option>
-                        </select>
-                        {blocked && (
-                          <span className="font-mono text-[10px] tracking-widest uppercase text-terracotta">
-                            !
-                          </span>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Available days — only in edit mode */}
-              {editing && (
-                <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
-                  <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
-                    Available days · constraint
-                  </div>
-                  <div className="grid grid-cols-7 gap-2">
-                    {DAYS.map((d) => {
-                      const allowed =
-                        drafted!.allowedDays === null ||
-                        drafted!.allowedDays.includes(d);
+                    const source = editing
+                      ? drafted!.allowedDays
+                      : s.allowedDays ?? null;
+                    const allowed = source === null || source.includes(d);
+                    if (editing) {
                       return (
                         <button
                           key={d}
@@ -479,13 +422,23 @@ export default function StaffPanel({
                           {d}
                         </button>
                       );
-                    })}
-                  </div>
-                  <div className="font-mono text-[12px] tracking-widest uppercase text-ink-soft mt-2">
-                    Lit days are working days · grayed = off-limits
-                  </div>
+                    }
+                    return (
+                      <div
+                        key={d}
+                        className={`staff-day-toggle ${
+                          allowed ? "is-on" : "is-off"
+                        } is-static`}
+                        title={`${DAYS_LONG[d]} · ${
+                          allowed ? "allowed" : "off-limits"
+                        }`}
+                      >
+                        {d}
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
             </article>
           );
