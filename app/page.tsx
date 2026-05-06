@@ -77,9 +77,18 @@ export default function Home() {
       if (remote) {
         setState(remote);
         setSync("synced");
+        console.info(
+          "[mcch] loaded from KV — staff:",
+          remote.staff.map((s) => s.name).join(", ")
+        );
       } else {
-        setState(loadState());
+        const local = loadState();
+        setState(local);
         setSync(remoteAvailable() === false ? "off" : "local");
+        console.info(
+          "[mcch] loaded from localStorage — staff:",
+          local.staff.map((s) => s.name).join(", ")
+        );
       }
       setHydrated(true);
     })();

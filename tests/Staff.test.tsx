@@ -40,22 +40,42 @@ function setup(overrides: Partial<Parameters<typeof StaffPanel>[0]> = {}) {
   return { setStaff, setSchedule, setManualPay, setLeaves, setRecurringLeaves, props };
 }
 
+function getCard(name: string): HTMLElement {
+  return screen.getByText(name, { selector: "div" }).closest("article")!;
+}
+
+function startEditing(card: HTMLElement) {
+  fireEvent.click(within(card).getByRole("button", { name: /^edit$/i }));
+}
+
 describe("<StaffPanel />", () => {
-  it("renders an editable card per caregiver", () => {
+  it("renders a card per caregiver", () => {
     setup();
-    const tessieInput = screen.getByDisplayValue("Tessie");
-    expect(tessieInput).toBeInTheDocument();
-    expect(tessieInput.className).toMatch(/staff-name-input/);
+    expect(screen.getByText("Tessie", { selector: "div" })).toBeInTheDocument();
+    expect(screen.getByText("Teng", { selector: "div" })).toBeInTheDocument();
   });
 
-  it("editing a name fires setStaff", () => {
+  it("clicking edit then changing the name and saving fires setStaff", () => {
     const { setStaff } = setup();
-    const tessieInput = screen.getByDisplayValue("Tessie") as HTMLInputElement;
-    fireEvent.change(tessieInput, { target: { value: "Tessa" } });
+    const card = getCard("Tessie");
+    startEditing(card);
+    const nameInput = within(card).getByDisplayValue("Tessie") as HTMLInputElement;
+    fireEvent.change(nameInput, { target: { value: "Tessa" } });
+    fireEvent.click(within(card).getByRole("button", { name: /^save$/i }));
     expect(setStaff).toHaveBeenCalled();
     const next = setStaff.mock.calls[0][0] as Staff[];
-    const t = next.find((s) => s.id === "tessie")!;
-    expect(t.name).toBe("Tessa");
+    expect(next.find((s) => s.id === "tessie")?.name).toBe("Tessa");
+  });
+
+  it("cancel discards edits without firing setStaff", () => {
+    const { setStaff } = setup();
+    const card = getCard("Tessie");
+    startEditing(card);
+    fireEvent.change(within(card).getByDisplayValue("Tessie"), {
+      target: { value: "WRONG" },
+    });
+    fireEvent.click(within(card).getByRole("button", { name: /^cancel$/i }));
+    expect(setStaff).not.toHaveBeenCalled();
   });
 
   it("clicking + add caregiver opens the modal", () => {
@@ -77,45 +97,81 @@ describe("<StaffPanel />", () => {
     expect(next[0].name).toBe("Cora"); // newest at top
   });
 
-  it("clicking remove drops the caregiver and clears their schedule entry", () => {
+  it("clicking remove drops the caregiver", () => {
     const { setStaff, setSchedule } = setup();
-    const tengCard = screen.getByDisplayValue("Teng").closest("article")!;
-    fireEvent.click(within(tengCard).getByRole("button", { name: /remove/i }));
+    const card = getCard("Teng");
+    fireEvent.click(within(card).getByRole("button", { name: /^remove$/i }));
     const next = setStaff.mock.calls[0][0] as Staff[];
     expect(next.find((s) => s.id === "teng")).toBeUndefined();
     const sched = setSchedule.mock.calls[0][0] as Schedule;
     expect(sched.teng).toBeUndefined();
   });
 
-  it("toggling manual on a non-manual staff fires setStaff with manual=true", () => {
+  it("toggling manual in edit mode and saving fires setStaff with manual=true", () => {
     const { setStaff } = setup();
-    // Find Teng's manual checkbox
-    const tengCard = screen.getByDisplayValue("Teng").closest("article")!;
-    const checkbox = within(tengCard).getByRole("checkbox") as HTMLInputElement;
+    const card = getCard("Teng");
+    startEditing(card);
+    const checkbox = within(card).getByRole("checkbox") as HTMLInputElement;
     expect(checkbox.checked).toBe(false);
     fireEvent.click(checkbox);
+    fireEvent.click(within(card).getByRole("button", { name: /^save$/i }));
     const next = setStaff.mock.calls[0][0] as Staff[];
     expect(next.find((s) => s.id === "teng")?.manual).toBe(true);
   });
 
-  it("rate input updates the staff rate", () => {
+  it("rate input in edit mode updates the staff rate on save", () => {
     const { setStaff } = setup();
-    const tengCard = screen.getByDisplayValue("Teng").closest("article")!;
-    const rateInput = within(tengCard)
+    const card = getCard("Teng");
+    startEditing(card);
+    const rateInput = within(card)
       .getAllByRole("spinbutton")
-      .find((el) => (el as HTMLInputElement).value === "500") as HTMLInputElement;
+      .find(
+        (el) => (el as HTMLInputElement).value === "500"
+      ) as HTMLInputElement;
     fireEvent.change(rateInput, { target: { value: "600" } });
+    fireEvent.click(within(card).getByRole("button", { name: /^save$/i }));
     const next = setStaff.mock.calls[0][0] as Staff[];
     expect(next.find((s) => s.id === "teng")?.rate).toBe(600);
   });
 
+  it("clicking a shift pill cycles the day's shift", () => {
+    const { setSchedule } = setup();
+    const card = getCard("Mary Ann");
+    // Mary Ann's first pill is Sun (already N). Click cycles N → off.
+    const pills = within(card).getAllByRole("button").filter((b) =>
+      b.className.includes("staff-shift-pill")
+    );
+    expect(pills).toHaveLength(7);
+    fireEvent.click(pills[0]); // Sun
+    expect(setSchedule).toHaveBeenCalled();
+    const sched = setSchedule.mock.calls[0][0] as Schedule;
+    expect(sched.maryann?.Sun).toBeUndefined();
+  });
+
+  it("toggling an available-day in edit mode commits allowedDays on save", () => {
+    const { setStaff } = setup();
+    const card = getCard("Tessie");
+    startEditing(card);
+    // Tessie's allowedDays = ["Sat","Sun","Mon","Tue","Wed"]
+    const dayToggles = within(card).getAllByRole("button").filter((b) =>
+      b.className.includes("staff-day-toggle")
+    );
+    expect(dayToggles).toHaveLength(7);
+    // Toggle off Mon (currently allowed)
+    fireEvent.click(dayToggles[1]);
+    fireEvent.click(within(card).getByRole("button", { name: /^save$/i }));
+    const next = setStaff.mock.calls[0][0] as Staff[];
+    const t = next.find((s) => s.id === "tessie")!;
+    expect(t.allowedDays).not.toContain("Mon");
+    expect(t.allowedDays).toContain("Sat");
+  });
+
   it("recurring-leave selector fires setRecurringLeaves", () => {
     const { setRecurringLeaves } = setup();
-    const tengCard = screen.getByDisplayValue("Teng").closest("article")!;
-    // 7 day selectors per card
-    const selects = within(tengCard).getAllByRole("combobox");
+    const card = getCard("Teng");
+    const selects = within(card).getAllByRole("combobox");
     expect(selects.length).toBe(7);
-    fireEvent.change(selects[1], { target: { value: "vacation" } }); // Mon
+    fireEvent.change(selects[1], { target: { value: "vacation" } });
     const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
     expect(next.teng?.Mon).toBe("vacation");
   });
@@ -124,11 +180,27 @@ describe("<StaffPanel />", () => {
     const { setRecurringLeaves } = setup({
       recurringLeaves: { teng: { Mon: "vacation" } },
     });
-    const tengCard = screen.getByDisplayValue("Teng").closest("article")!;
-    const selects = within(tengCard).getAllByRole("combobox");
+    const card = getCard("Teng");
+    const selects = within(card).getAllByRole("combobox");
     fireEvent.change(selects[1], { target: { value: "" } });
     const next = setRecurringLeaves.mock.calls[0][0] as RecurringLeavesMap;
-    // entire teng row should be removed when last rule cleared
     expect(next.teng).toBeUndefined();
+  });
+
+  it("shows restore-defaults banner when default IDs are missing", () => {
+    setup({ staff: DEFAULT_STAFF.filter((s) => s.id !== "tessie") });
+    expect(screen.getByText(/default caregiver/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /restore defaults/i })
+    ).toBeInTheDocument();
+  });
+
+  it("clicking restore-defaults adds the missing caregivers back", () => {
+    const { setStaff } = setup({
+      staff: DEFAULT_STAFF.filter((s) => s.id !== "tessie"),
+    });
+    fireEvent.click(screen.getByRole("button", { name: /restore defaults/i }));
+    const next = setStaff.mock.calls[0][0] as Staff[];
+    expect(next.find((s) => s.id === "tessie")?.name).toBe("Tessie");
   });
 });

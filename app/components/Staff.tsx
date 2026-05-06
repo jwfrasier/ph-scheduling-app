@@ -1,23 +1,42 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DAYS,
+  DAYS_LONG,
+  DEFAULT_STAFF,
+  Day,
   LEAVE_LABELS,
   LeaveType,
   LeavesMap,
   ManualPayMap,
   RecurringLeavesMap,
   Schedule,
+  ShiftKind,
   Staff,
   pesos,
   shiftCount,
   staffPay,
   uid,
 } from "../lib/data";
+
+const NEXT_SHIFT: Record<"none" | ShiftKind, "none" | ShiftKind> = {
+  none: "D",
+  D: "N",
+  N: "none",
+};
 import StaffAddModal from "./StaffAddModal";
 
 type PayFilter = "all" | "auto" | "manual";
+
+type EditDraft = {
+  name: string;
+  role: string;
+  rate: number;
+  manual: boolean;
+  manualPay: number;
+  allowedDays: Day[] | null; // null = no constraint (all days OK)
+};
 
 export default function StaffPanel({
   staff,
@@ -48,13 +67,76 @@ export default function StaffPanel({
   const [search, setSearch] = useState("");
   const [payFilter, setPayFilter] = useState<PayFilter>("all");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
 
-  function update<K extends keyof Staff>(id: string, key: K, value: Staff[K]) {
-    setStaff(staff.map((s) => (s.id === id ? { ...s, [key]: value } : s)));
+  // Detect missing default IDs
+  const missingDefaults = useMemo(() => {
+    const present = new Set(staff.map((s) => s.id));
+    return DEFAULT_STAFF.filter((d) => !present.has(d.id));
+  }, [staff]);
+
+  function startEdit(s: Staff) {
+    setEditingId(s.id);
+    setDraft({
+      name: s.name,
+      role: s.role,
+      rate: s.rate,
+      manual: s.manual,
+      manualPay: manualPay[s.id] ?? 0,
+      allowedDays: s.allowedDays ? [...s.allowedDays] : null,
+    });
   }
-  function setPay(id: string, val: number) {
-    setManualPay({ ...manualPay, [id]: val });
+  function toggleAllowedDay(d: Day) {
+    if (!draft) return;
+    // null/undefined means "no constraint": when user first toggles, treat as
+    // "all 7 minus the one being turned off"
+    const cur = draft.allowedDays ?? [...DAYS];
+    const has = cur.includes(d);
+    const next = has ? cur.filter((x) => x !== d) : [...cur, d];
+    // If full week is allowed again, clear the constraint
+    const nextOrNull = next.length === 7 ? null : next;
+    setDraft({ ...draft, allowedDays: nextOrNull });
   }
+  function setShift(staffId: string, day: Day) {
+    const current = (schedule[staffId]?.[day] ?? null) as ShiftKind | null;
+    const cur = (current ?? "none") as "none" | ShiftKind;
+    const next = NEXT_SHIFT[cur];
+    const row = { ...(schedule[staffId] ?? {}) };
+    if (next === "none") delete row[day];
+    else row[day] = next;
+    setSchedule({ ...schedule, [staffId]: row });
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setDraft(null);
+  }
+  function saveEdit(id: string) {
+    if (!draft) return;
+    if (!draft.name.trim()) {
+      notify?.("Name can't be empty");
+      return;
+    }
+    setStaff(
+      staff.map((s) =>
+        s.id === id
+          ? {
+              ...s,
+              name: draft.name.trim(),
+              role: draft.role.trim() || "Caregiver",
+              rate: draft.rate,
+              manual: draft.manual,
+              allowedDays: draft.allowedDays ?? undefined,
+            }
+          : s
+      )
+    );
+    setManualPay({ ...manualPay, [id]: draft.manualPay });
+    notify?.(`Saved ${draft.name.trim()}`);
+    setEditingId(null);
+    setDraft(null);
+  }
+
   function remove(id: string) {
     const target = staff.find((s) => s.id === id);
     if (!target) return;
@@ -91,7 +173,6 @@ export default function StaffPanel({
   function confirmAdd(s: Omit<Staff, "id">, manualPayAmount: number) {
     const id = uid();
     const newStaff: Staff = { ...s, id };
-    // Prepend so newest appears at the top
     setStaff([newStaff, ...staff]);
     if (newStaff.manual && manualPayAmount > 0) {
       setManualPay({ ...manualPay, [id]: manualPayAmount });
@@ -100,6 +181,50 @@ export default function StaffPanel({
     setHighlightId(id);
     setTimeout(() => setHighlightId(null), 2500);
     notify?.(`Added ${newStaff.name}`);
+  }
+
+  function restoreMissingDefaults() {
+    if (missingDefaults.length === 0) return;
+    if (
+      !confirm(
+        `Restore ${missingDefaults
+          .map((s) => s.name)
+          .join(", ")}? Their PRD-default schedule will also be re-applied where empty.`
+      )
+    )
+      return;
+    // Prepend missing defaults so they appear at top
+    setStaff([...missingDefaults, ...staff]);
+    // Re-apply default schedule for restored staff if missing
+    const restoredSchedule = { ...schedule };
+    const restoredPay = { ...manualPay };
+    for (const ds of missingDefaults) {
+      if (!restoredSchedule[ds.id]) {
+        // Look up the PRD default schedule from data.ts
+        const defaults: Record<string, Partial<Record<typeof DAYS[number], "D" | "N">>> = {
+          tessie:  { Sun: "D", Mon: "D", Tue: "D", Wed: "D", Sat: "D" },
+          eula:    { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D" },
+          teng:    { Sun: "D", Thu: "D", Fri: "D", Sat: "D" },
+          jane:    { Sun: "D", Tue: "D", Thu: "N", Fri: "N", Sat: "D" },
+          trisha:  { Mon: "N", Tue: "N", Wed: "N", Thu: "N", Fri: "N" },
+          jessica: { Sun: "N", Mon: "N", Tue: "N", Wed: "N", Sat: "N" },
+          alondra: { Mon: "D", Tue: "D", Wed: "D", Thu: "D", Fri: "D" },
+          maryann: { Sun: "N" },
+          j:       { Fri: "N", Sat: "N" },
+        };
+        if (defaults[ds.id]) restoredSchedule[ds.id] = defaults[ds.id]!;
+      }
+      if (ds.manual && !restoredPay[ds.id]) {
+        restoredPay[ds.id] = 3000;
+      }
+    }
+    setSchedule(restoredSchedule);
+    setManualPay(restoredPay);
+    notify?.(
+      `Restored ${missingDefaults.length} default caregiver${
+        missingDefaults.length === 1 ? "" : "s"
+      }`
+    );
   }
 
   const filtered = useMemo(() => {
@@ -128,6 +253,23 @@ export default function StaffPanel({
           + add caregiver
         </button>
       </div>
+
+      {missingDefaults.length > 0 && (
+        <aside className="staff-restore-banner">
+          <div>
+            <div className="font-display text-2xl leading-tight">
+              {missingDefaults.length} default caregiver
+              {missingDefaults.length === 1 ? "" : "s"} missing
+            </div>
+            <div className="font-mono text-[12px] tracking-widest uppercase text-ink-soft mt-1">
+              {missingDefaults.map((s) => s.name).join(" · ")}
+            </div>
+          </div>
+          <button onClick={restoreMissingDefaults} className="action-btn">
+            restore defaults
+          </button>
+        </aside>
+      )}
 
       <div className="staff-filter-bar">
         <input
@@ -162,58 +304,116 @@ export default function StaffPanel({
           const c = shiftCount(schedule, s.id);
           const pay = staffPay(s, schedule, manualPay, leaves);
           const isNew = s.id === highlightId;
+          const editing = editingId === s.id;
+          const drafted = editing ? draft! : null;
           return (
             <article
               key={s.id}
-              className={`bg-paper-deep/35 border border-ink/20 p-5 relative ${
-                isNew ? "staff-card-new" : ""
-              }`}
+              className={`bg-paper-deep/35 border ${
+                editing ? "border-terracotta" : "border-ink/20"
+              } p-5 relative ${isNew ? "staff-card-new" : ""}`}
             >
               {isNew && <span className="staff-card-badge">just added</span>}
+              {editing && <span className="staff-card-badge">editing</span>}
+
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <input
-                    className="staff-name-input"
-                    value={s.name}
-                    title="Click to edit"
-                    onChange={(e) => update(s.id, "name", e.target.value)}
-                  />
-                  <input
-                    className="staff-role-input"
-                    value={s.role}
-                    title="Click to edit"
-                    onChange={(e) => update(s.id, "role", e.target.value)}
-                  />
+                  {editing ? (
+                    <>
+                      <input
+                        className="staff-name-input"
+                        value={drafted!.name}
+                        autoFocus
+                        onChange={(e) =>
+                          setDraft({ ...drafted!, name: e.target.value })
+                        }
+                      />
+                      <input
+                        className="staff-role-input"
+                        value={drafted!.role}
+                        onChange={(e) =>
+                          setDraft({ ...drafted!, role: e.target.value })
+                        }
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-display text-2xl leading-tight">
+                        {s.name}
+                      </div>
+                      <div className="font-mono text-[13px] tracking-[0.1em] uppercase text-ink-soft mt-1">
+                        {s.role}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <button
-                  onClick={() => remove(s.id)}
-                  className="opacity-40 hover:opacity-100 hover:text-terracotta font-mono text-[14px] tracking-widest uppercase"
-                  title="Remove caregiver"
-                >
-                  remove
-                </button>
+
+                {editing ? (
+                  <div className="flex flex-col gap-1 items-end">
+                    <button
+                      onClick={() => saveEdit(s.id)}
+                      className="action-btn"
+                      title="Save changes"
+                    >
+                      save
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="action-btn-ghost"
+                      title="Discard changes"
+                    >
+                      cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1 items-end">
+                    <button
+                      onClick={() => startEdit(s)}
+                      className="action-btn"
+                      title="Edit caregiver"
+                    >
+                      edit
+                    </button>
+                    <button
+                      onClick={() => remove(s.id)}
+                      className="action-btn-ghost"
+                      title="Remove caregiver"
+                    >
+                      remove
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-3 font-mono text-[13px]">
-                <label className="cursor-text" title="Click to edit rate">
+                <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Rate / shift
                   </div>
                   <div className="flex items-baseline gap-1 mt-1">
                     <span className="text-ink/40">₱</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={50}
-                      value={s.rate}
-                      disabled={s.manual}
-                      onChange={(e) =>
-                        update(s.id, "rate", Number(e.target.value))
-                      }
-                      className="amount-input"
-                    />
+                    {editing ? (
+                      <input
+                        type="number"
+                        min={0}
+                        step={50}
+                        value={drafted!.rate}
+                        disabled={drafted!.manual}
+                        onChange={(e) =>
+                          setDraft({
+                            ...drafted!,
+                            rate: Number(e.target.value),
+                          })
+                        }
+                        className="amount-input"
+                      />
+                    ) : (
+                      <span className="font-mono text-base tabnum">
+                        {s.rate}
+                      </span>
+                    )}
                   </div>
-                </label>
+                </div>
                 <div>
                   <div className="text-[13px] tracking-widest uppercase text-ink-soft">
                     Shifts / wk
@@ -231,19 +431,31 @@ export default function StaffPanel({
               </div>
 
               <div className="mt-4 pt-3 border-t border-dashed border-ink/20 flex items-center justify-between gap-3 flex-wrap">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={s.manual}
-                    onChange={(e) => update(s.id, "manual", e.target.checked)}
-                    className="check"
-                  />
-                  <span className="font-mono text-[14px] tracking-[0.2em] uppercase">
-                    Manual pay
+                {editing ? (
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={drafted!.manual}
+                      onChange={(e) =>
+                        setDraft({ ...drafted!, manual: e.target.checked })
+                      }
+                      className="check"
+                    />
+                    <span className="font-mono text-[14px] tracking-[0.2em] uppercase">
+                      Manual pay
+                    </span>
+                  </label>
+                ) : (
+                  <span
+                    className={`font-mono text-[14px] tracking-[0.2em] uppercase ${
+                      s.manual ? "text-terracotta" : "text-ink-soft"
+                    }`}
+                  >
+                    {s.manual ? "Manual pay" : "Auto pay"}
                   </span>
-                </label>
-                {s.manual ? (
-                  <label className="flex items-baseline gap-1 cursor-text" title="Click to edit amount">
+                )}
+                {editing && drafted!.manual ? (
+                  <label className="flex items-baseline gap-1">
                     <span className="font-mono text-[13px] uppercase tracking-widest text-ink-soft">
                       amount
                     </span>
@@ -252,32 +464,108 @@ export default function StaffPanel({
                       type="number"
                       min={0}
                       step={50}
-                      value={manualPay[s.id] ?? 0}
-                      onChange={(e) => setPay(s.id, Number(e.target.value))}
+                      value={drafted!.manualPay}
+                      onChange={(e) =>
+                        setDraft({
+                          ...drafted!,
+                          manualPay: Number(e.target.value),
+                        })
+                      }
                       className="amount-input max-w-[110px]"
                     />
                   </label>
+                ) : !editing && s.manual ? (
+                  <span className="font-mono text-base tabnum">
+                    {pesos(manualPay[s.id] ?? 0)}
+                  </span>
                 ) : (
                   <span className="font-mono text-[14px] tracking-widest uppercase text-ink-soft italic">
-                    auto · {c} × {pesos(s.rate)}
+                    {c} × {pesos(s.rate)}
                   </span>
                 )}
               </div>
 
-              <div className="mt-3 pt-3 border-t border-dashed border-ink/20">
+              {/* This week's shifts — always editable */}
+              <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
                 <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
-                  Recurring leave
+                  This week&rsquo;s shifts · click to cycle
                 </div>
-                <div className="grid grid-cols-7 gap-1">
+                <div className="grid grid-cols-7 gap-2">
+                  {DAYS.map((d) => {
+                    const k = (schedule[s.id]?.[d] ?? null) as ShiftKind | null;
+                    const blocked =
+                      s.allowedDays && !s.allowedDays.includes(d);
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setShift(s.id, d)}
+                        className={`staff-shift-pill ${
+                          k === "D" ? "is-day" : k === "N" ? "is-night" : ""
+                        } ${blocked ? "is-blocked" : ""}`}
+                        title={`${DAYS_LONG[d]} · click to cycle off → day → night`}
+                      >
+                        <span className="staff-shift-pill-day font-mono text-[10px]">
+                          {d}
+                        </span>
+                        <span className="staff-shift-pill-state font-mono">
+                          {k === "D" ? "Day" : k === "N" ? "Night" : "Off"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Available days — only in edit mode */}
+              {editing && (
+                <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
+                  <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
+                    Available days · constraint
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {DAYS.map((d) => {
+                      const allowed =
+                        drafted!.allowedDays === null ||
+                        drafted!.allowedDays.includes(d);
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => toggleAllowedDay(d)}
+                          className={`staff-day-toggle ${
+                            allowed ? "is-on" : "is-off"
+                          }`}
+                          title={`${DAYS_LONG[d]} · ${
+                            allowed ? "allowed" : "off-limits"
+                          }`}
+                        >
+                          {d}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="font-mono text-[12px] tracking-widest uppercase text-ink-soft mt-2">
+                    Lit days are working days · grayed = off-limits
+                  </div>
+                </div>
+              )}
+
+              {/* Recurring leave */}
+              <div className="mt-4 pt-3 border-t border-dashed border-ink/20">
+                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mb-2">
+                  Recurring days off · auto-applied to new weeks
+                </div>
+                <div className="grid grid-cols-7 gap-2">
                   {DAYS.map((d) => {
                     const t = recurringLeaves[s.id]?.[d];
                     return (
                       <label
                         key={d}
                         className="flex flex-col items-stretch gap-1 text-center"
-                        title={`${d} · recurring leave`}
+                        title={`${DAYS_LONG[d]} · recurring leave reason`}
                       >
-                        <span className="font-mono text-[13px] tracking-widest uppercase text-ink-soft">
+                        <span className="font-mono text-[12px] tracking-widest uppercase text-ink-soft">
                           {d}
                         </span>
                         <select
@@ -295,19 +583,18 @@ export default function StaffPanel({
                             t ? "text-sage" : "text-ink-soft"
                           }`}
                         >
-                          <option value="">—</option>
-                          {(Object.keys(LEAVE_LABELS) as LeaveType[]).map((k) => (
-                            <option key={k} value={k}>
-                              {LEAVE_LABELS[k][0]}
-                            </option>
-                          ))}
+                          <option value="">— working —</option>
+                          {(Object.keys(LEAVE_LABELS) as LeaveType[]).map(
+                            (k) => (
+                              <option key={k} value={k}>
+                                {LEAVE_LABELS[k]}
+                              </option>
+                            )
+                          )}
                         </select>
                       </label>
                     );
                   })}
-                </div>
-                <div className="font-mono text-[13px] tracking-widest uppercase text-ink-soft mt-2">
-                  Applied to new weeks
                 </div>
               </div>
             </article>

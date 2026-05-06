@@ -1059,6 +1059,111 @@ kbd {
   padding: 2px 8px;
 }
 
+/* shift pills inside staff card */
+
+.staff-shift-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(28, 26, 23, 0.2);
+  cursor: pointer;
+  min-height: 50px;
+  transition: all 140ms ease;
+}
+
+.staff-shift-pill:hover {
+  border-color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.staff-shift-pill-day {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.staff-shift-pill-state {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  color: var(--ink);
+}
+
+.staff-shift-pill.is-day {
+  background: rgba(200, 150, 67, 0.15);
+  border-color: var(--ochre);
+}
+
+.staff-shift-pill.is-day .staff-shift-pill-state {
+  color: var(--ochre);
+}
+
+.staff-shift-pill.is-night {
+  background: var(--night);
+  border-color: var(--night);
+}
+
+.staff-shift-pill.is-night .staff-shift-pill-day,
+.staff-shift-pill.is-night .staff-shift-pill-state {
+  color: var(--paper);
+}
+
+.staff-shift-pill.is-blocked {
+  outline: 1px dashed var(--terracotta);
+  outline-offset: -3px;
+}
+
+.staff-shift-pill.is-blocked::after {
+  content: "!";
+  position: absolute;
+}
+
+/* available-days toggles in edit mode */
+
+.staff-day-toggle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 8px 4px;
+  background: transparent;
+  border: 1px solid rgba(28, 26, 23, 0.25);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.staff-day-toggle.is-on {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.staff-day-toggle.is-off {
+  background: transparent;
+  color: rgba(28, 26, 23, 0.35);
+  text-decoration: line-through;
+}
+
+.staff-day-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.staff-restore-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: rgba(184, 90, 54, 0.08);
+  border: 1px solid var(--terracotta);
+  border-left-width: 4px;
+  margin-bottom: 14px;
+}
+
 .check {
   width: 14px;
   height: 14px;
