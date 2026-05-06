@@ -40,6 +40,7 @@ import {
 } from "./lib/data";
 import {
   SyncStatus,
+  forceRemoteLoad,
   remoteAvailable,
   tryRemoteLoad,
   tryRemoteSave,
@@ -365,6 +366,19 @@ export default function Home() {
     setPrintMode(mode);
     requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
   }
+  async function pullFromCloud() {
+    setSync("syncing");
+    const remote = await forceRemoteLoad();
+    if (remote) {
+      setState(remote);
+      setSync("synced");
+      flashToast(`Pulled ${remote.staff.length} caregivers from cloud`);
+    } else {
+      setSync("error");
+      flashToast("Could not reach cloud — check Vercel KV setup");
+    }
+  }
+
   function handleReset() {
     if (
       !confirm(
@@ -482,6 +496,9 @@ export default function Home() {
               </button>
               <button onClick={shareLink} className="action-btn" title="Copy read-only link">
                 ⇪ share
+              </button>
+              <button onClick={pullFromCloud} className="action-btn" title="Pull latest state from Vercel KV">
+                ⟳ cloud
               </button>
               <button onClick={exportJson} className="action-btn-ghost" title="Backup JSON">
                 ⇣ json

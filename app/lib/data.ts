@@ -451,6 +451,35 @@ export function loadState(): AppState {
   }
 }
 
+/** Ensure any staff id referenced in any week's schedule is also in the
+ *  staff list. Looks up names from DEFAULT_STAFF when available; otherwise
+ *  creates a stub. This protects against stale states losing staff. */
+export function repairState(state: AppState): AppState {
+  const known = new Set(state.staff.map((s) => s.id));
+  const referenced = new Set<string>();
+  for (const wk of Object.values(state.weeks)) {
+    for (const id of Object.keys(wk.schedule ?? {})) referenced.add(id);
+    for (const id of Object.keys(wk.manualPay ?? {})) referenced.add(id);
+    for (const id of Object.keys(wk.leaves ?? {})) referenced.add(id);
+    for (const id of Object.keys(wk.notes ?? {})) referenced.add(id);
+  }
+  const missingIds = [...referenced].filter((id) => !known.has(id));
+  if (missingIds.length === 0) return state;
+  const restored: Staff[] = missingIds.map((id) => {
+    const def = DEFAULT_STAFF.find((d) => d.id === id);
+    return (
+      def ?? {
+        id,
+        name: id.charAt(0).toUpperCase() + id.slice(1),
+        role: "Restored caregiver",
+        rate: DEFAULT_RATE,
+        manual: false,
+      }
+    );
+  });
+  return { ...state, staff: [...state.staff, ...restored] };
+}
+
 export function parseState(parsed: unknown): AppState {
   if (!parsed || typeof parsed !== "object") return makeDefaultState();
   const p = parsed as Record<string, unknown>;
@@ -460,13 +489,13 @@ export function parseState(parsed: unknown): AppState {
     const weeks = p.weeks as Record<string, WeekData>;
     const filled: Record<string, WeekData> = {};
     for (const k of Object.keys(weeks)) filled[k] = ensureWeekShape(weeks[k]);
-    return {
+    return repairState({
       staff: ((p.staff as Staff[]) ?? DEFAULT_STAFF).map(stripStaff),
       shiftTimes: (p.shiftTimes as ShiftTimes) ?? DEFAULT_SHIFT_TIMES,
       weeks: filled,
       currentWeekKey: p.currentWeekKey as string,
       recurringLeaves: (p.recurringLeaves as RecurringLeavesMap) ?? {},
-    };
+    });
   }
 
   // Old single-week schema → migrate
